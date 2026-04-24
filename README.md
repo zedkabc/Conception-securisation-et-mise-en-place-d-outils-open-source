@@ -24,8 +24,7 @@ Ce dossier reprend les éléments de la documentation serveur GLPI, de la fiche 
 4. Mise en œuvre technique  
 5. Paramétrage helpdesk et intégration annuaire  
 6. Sécurisation, exploitation et maintenance  
-7. Recette fonctionnelle et validation  
-8. Bilan professionnel et perspectives  
+7. Bilan professionnel et perspectives  
 Bibliographie  
 Annexes
 
