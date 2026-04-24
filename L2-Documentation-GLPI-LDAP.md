@@ -447,36 +447,6 @@ Utilisateur trouvé : Prénom Nom (email@iris.a3n.fr)
 - **Visible dans l'interface simplifiée :** Oui
 - **Catégorie pour les modèles de ticket :** Oui
 
-**Modèle de ticket associé :**
-- Urgence par défaut : Moyenne
-- Impact par défaut : Moyen
-- Priorité par défaut : Moyenne (calculée automatiquement)
-
-**Groupe assigné par défaut :**
-- Groupe de techniciens : `Techniciens Réseau` (à créer dans Administration → Groupes)
-
-**SLA associé :**
-- Temps de prise en compte : 2 heures
-- Temps de résolution : 24 heures
-
-### 7.3 Création d'un groupe de techniciens
-
-**Administration → Groupes → Ajouter**
-
-**Groupe : Techniciens Réseau**
-- **Nom :** Techniciens Réseau
-- **Groupe assigné aux tickets :** Oui
-- **Niveau de notification :** Notification à tous les membres
-
-**Ajouter des utilisateurs au groupe :**
-- Sélectionner les enseignants qui gèrent le réseau
-- Profil : Technicien
-
-**Répéter pour :**
-- Techniciens Système
-- Techniciens Développement
-- Support N1
-
 ---
 
 ## 8. Workflow de Ticketing N1/N2/N3
@@ -485,60 +455,9 @@ Utilisateur trouvé : Prénom Nom (email@iris.a3n.fr)
 
 Le système de niveaux (N1/N2/N3) permet de **router les tickets vers les bonnes compétences** :
 
-```
-Ticket créé
-    │
-    ▼
-┌─────────────────┐
-│ Auto-analyse    │  ← Catégorie choisie par l'utilisateur
-│ (via catégorie) │
-└────────┬────────┘
-         │
-    ┌────┴────┐
-    │         │
-    ▼         ▼
-┌───────┐  ┌───────┐
-│  N1   │  │  N2   │
-│Simple │  │Techni-│
-│       │  │que    │
-└───┬───┘  └───┬───┘
-    │          │
-    │          │
-    │      ┌───▼───┐
-    │      │  N3   │
-    │      │Expert │
-    │      └───────┘
-    │
-    └─→ Résolution directe
-```
+![Texte alternatif](Logigramme.png)
 
-### 8.2 Règles de routage automatique
-
-**Assistance → Règles métier → Règles métier pour les tickets**
-
-**Règle N1 — Support basique**
-- **Critères :**
-  - `Catégorie` / `est` / `Problème login / compte` OU `Demande d'installation (logiciel standard)`
-- **Actions :**
-  - `Groupe assigné` / `Support N1`
-  - `Temps de résolution` / `4 heures`
-
-**Règle N2 — Support technique**
-- **Critères :**
-  - `Catégorie` / `est` / `Problème réseau` OU `Problème matériel`
-- **Actions :**
-  - `Groupe assigné` / `Techniciens Réseau` ou `Techniciens Système`
-  - `Temps de résolution` / `24 heures`
-
-**Règle N3 — Expertise**
-- **Critères :**
-  - `Catégorie` / `est` / `Sécurité` OU `Urgence` / `est` / `Très haute`
-- **Actions :**
-  - `Groupe assigné` / `Experts`
-  - `Temps de résolution` / `48 heures`
-  - `Notification` / `Envoyer à responsable technique`
-
-### 8.3 Cycle de vie d'un ticket
+### 8.2 Cycle de vie d'un ticket
 
 **États GLPI :**
 
@@ -568,115 +487,18 @@ Si un utilisateur répond à un ticket **Résolu**, il repasse automatiquement e
 **Configuration → Notifications → Configuration des suivis par courriels**
 
 **Onglet Configuration du courriel :**
-- **Administrateur email :** `admin@iris.a3n.fr`
-- **Nom de l'administrateur :** `Support IRIS Nice`
-- **Adresse email de réponse :** `noreply@iris.a3n.fr`
-- **Signature :** 
-  ```
-  ---
-  Support IRIS Nice - Helpdesk GLPI
-  https://glpi.iris.a3n.fr:4433
-  ```
+- **Administrateur email :** `louka.lavenir@mediaschool.me`
+- **Nom de l'administrateur :** `LAVENIR Louka` 
 
 **Onglet Configuration du serveur de messagerie :**
 - **Méthode d'envoi :** SMTP
-- **Serveur SMTP :** `smtp.iris.a3n.fr` (ou serveur SMTP externe)
-- **Port SMTP :** `587` (STARTTLS) ou `465` (SSL)
-- **Connexion SMTP nécessite une authentification :** Oui
-- **Nom d'utilisateur SMTP :** `glpi-noreply@iris.a3n.fr`
-- **Mot de passe SMTP :** `[mot_de_passe_smtp]`
-- **Chiffrement SMTP :** STARTTLS
+- **Hôte SMTP :** `smtp.gmail.com`
+- **Port SMTP :** `587` (STARTTLS)
 
 **Tester l'envoi :**
 - **Configuration → Notifications → Envoyer un courriel de test**
 - Saisir une adresse email de test
 - Vérifier réception
-
-### 9.2 Modèles de notifications
-
-**Configuration → Notifications → Modèles de notifications**
-
-**Modèles par défaut (à personnaliser) :**
-
-**1. Nouveau ticket (pour le demandeur)**
-- **Objet :** `[GLPI] Votre ticket ##ticket.id## a été créé`
-- **Contenu :**
-  ```
-  Bonjour ##ticket.author.firstname##,
-  
-  Votre demande d'assistance a bien été enregistrée.
-  
-  Numéro du ticket : ##ticket.id##
-  Objet : ##ticket.title##
-  Catégorie : ##ticket.category##
-  Urgence : ##ticket.urgency##
-  
-  Vous pouvez suivre l'évolution de votre ticket à cette adresse :
-  ##ticket.url##
-  
-  Cordialement,
-  L'équipe Support IRIS Nice
-  ```
-
-**2. Ticket assigné (pour le technicien)**
-- **Objet :** `[GLPI] Le ticket ##ticket.id## vous a été assigné`
-- **Contenu :**
-  ```
-  Bonjour ##ticket.assign.firstname##,
-  
-  Un nouveau ticket vous a été assigné.
-  
-  Numéro : ##ticket.id##
-  Demandeur : ##ticket.author.name##
-  Objet : ##ticket.title##
-  Catégorie : ##ticket.category##
-  Urgence : ##ticket.urgency##
-  
-  Description :
-  ##ticket.description##
-  
-  Lien vers le ticket :
-  ##ticket.url##
-  ```
-
-**3. Ticket résolu (pour le demandeur)**
-- **Objet :** `[GLPI] Votre ticket ##ticket.id## a été résolu`
-- **Contenu :**
-  ```
-  Bonjour ##ticket.author.firstname##,
-  
-  Votre ticket a été marqué comme résolu.
-  
-  Numéro : ##ticket.id##
-  Objet : ##ticket.title##
-  
-  Solution apportée :
-  ##ticket.solution.description##
-  
-  Si le problème persiste, vous pouvez rouvrir le ticket en y répondant.
-  Sinon, il sera automatiquement clos dans 7 jours.
-  
-  Lien vers le ticket :
-  ##ticket.url##
-  ```
-
-### 9.3 Événements de notification
-
-**Configuration → Notifications → Notifications → Tickets**
-
-**Événements activés :**
-
-| Événement | Destinataires |
-|:---|:---|
-| **Nouveau ticket** | Demandeur, Groupe assigné |
-| **Ajout suivi** | Demandeur, Technicien assigné |
-| **Ticket assigné** | Technicien assigné |
-| **Ticket résolu** | Demandeur |
-| **Ticket clos** | Demandeur |
-| **Rappel de ticket (SLA)** | Technicien assigné, Superviseur |
-| **Réouverture ticket** | Technicien assigné, Superviseur |
-
----
 
 ## 10. Interface Self-Service (Utilisateurs)
 
