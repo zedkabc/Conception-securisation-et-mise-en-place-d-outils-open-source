@@ -18,8 +18,9 @@ GLPI (Gestion Libre de Parc Informatique) est un système de helpdesk et de gest
 - Centraliser les demandes d'assistance (pas de demandes perdues ou oubliées)
 - Tracer tous les incidents et leur résolution
 - Classifier les tickets par niveau d'intervention (N1/N2/N3)
-- Intégrer l'authentification avec l'Active Directory existant (RP-02)
-- Exposer le service en HTTP via Traefik
+- Aligner le cycle de traitement sur les pratiques ITIL (incident, demande, escalade, clôture)
+- Intégrer l'authentification avec l'OpenLDAP existant (RP-02)
+- Exposer le service en HTTPS via Traefik sur le port 4433
 
 ### 1.2 Pourquoi GLPI ?
 
@@ -28,11 +29,11 @@ GLPI (Gestion Libre de Parc Informatique) est un système de helpdesk et de gest
 | Critère | GLPI | ServiceNow | Jira Service Management | ManageEngine |
 |:---|:---|:---|:---|:---|
 | **Coût licence** | 0 € (Open Source) | 50 000 € - 500 000 €/an | 20-50 €/agent/mois | 13-60 €/technicien/mois |
-| **Souveraineté données** | ✅ Auto-hébergé | ❌ Cloud (US) | ⚠️ Cloud ou auto-hébergé | ⚠️ Cloud ou auto-hébergé |
-| **Inventaire intégré** | ✅ Natif | ✅ Natif (payant) | ❌ Module séparé (Assets) | ✅ Natif (version Enterprise) |
-| **Éditeur français** | ✅ Teclib' (France) | ❌ ServiceNow Inc (US) | ❌ Atlassian (Australie) | ❌ Zoho (Inde) |
-| **Conformité RGPD** | ✅ Totale (données en France) | ⚠️ Cloud Act | ⚠️ Selon hébergement | ⚠️ Selon hébergement |
-| **Communauté francophone** | ✅ Très large | ⚠️ Limitée | ✅ Bonne | ⚠️ Limitée |
+| **Souveraineté données** |  Auto-hébergé |  Cloud (US) |  Cloud ou auto-hébergé |  Cloud ou auto-hébergé |
+| **Inventaire intégré** |  Natif |  Natif (payant) |  Module séparé (Assets) |  Natif (version Enterprise) |
+| **Éditeur français** |  Teclib' (France) |  ServiceNow Inc (US) |  Atlassian (Australie) |  Zoho (Inde) |
+| **Conformité RGPD** |  Totale (données en France) |  Cloud Act |  Selon hébergement |  Selon hébergement |
+| **Communauté francophone** |  Très large |  Limitée |  Bonne |  Limitée |
 
 **Verdict :** GLPI est le seul outil qui réunit **helpdesk + inventaire dans une interface unifiée, sans frais de licence, tout en étant open source et français.**
 
@@ -51,7 +52,7 @@ GLPI (Gestion Libre de Parc Informatique) est un système de helpdesk et de gest
 
 - **Docker** : version 24.0+
 - **Docker Compose** : version 2.20+
-- **Active Directory** : opérationnel (RP-02)
+- **OpenLDAP** : opérationnel (RP-02)
 - **Traefik** : reverse proxy configuré (voir L6)
 
 ### 2.3 Réseau
@@ -61,7 +62,7 @@ GLPI (Gestion Libre de Parc Informatique) est un système de helpdesk et de gest
 - **Ports internes :**
   - GLPI : 8080 (HTTP, via Traefik uniquement)
   - MariaDB : 3306 (interne au serveur)
-- **Port externe :** 443 (HTTP via Traefik)
+- **Port externe :** 4433 (HTTPS via Traefik)
 
 ---
 
@@ -130,7 +131,7 @@ networks:
     external: true
 ```
 
-**⚠️ Points importants :**
+** Points importants :**
 - **Pas de section `ports:`** — Traefik route le trafic via le réseau Docker interne. Publier le port 8080 sur l'hôte créerait un conflit avec les autres services.
 - **Deux réseaux :** `glpi-network` (interne, pour communiquer avec MariaDB) et `traefik-network` (externe, partagé avec Traefik).
 - **Label `traefik.docker.network`** — Nécessaire quand un conteneur est sur plusieurs réseaux. Sans ce label, Traefik peut essayer de router via le mauvais réseau → erreur 502 Bad Gateway.
@@ -146,7 +147,7 @@ GLPI_DB_ROOT_PASSWORD=mot_de_passe_root_complexe_ici
 GLPI_DB_PASSWORD=mot_de_passe_glpi_complexe_ici
 ```
 
-**⚠️ Sécurité :**
+** Sécurité :**
 - Ce fichier ne doit **jamais** être commité dans un repository Git (ajouter `.env` au `.gitignore`)
 - Permissions restrictives : `chmod 600 .env` (lecture/écriture root uniquement)
 - Utiliser des mots de passe forts (minimum 16 caractères, alphanumériques + symboles)
@@ -177,7 +178,7 @@ docker compose logs -f glpi
 
 ### 3.4 Accès initial
 
-**URL :** http://glpi.iris.a3n.fr (via Traefik)
+**URL :** https://glpi.iris.a3n.fr:4433 (via Traefik)
 
 **Installation wizard GLPI :**
 
@@ -199,7 +200,7 @@ docker compose logs -f glpi
 - **Admin :** tech / tech
 - **Post-only :** post-only / postonly
 
-**⚠️ SÉCURITÉ CRITIQUE :** Changer immédiatement tous les mots de passe par défaut après première connexion.
+** SÉCURITÉ CRITIQUE :** Changer immédiatement tous les mots de passe par défaut après première connexion.
 
 ---
 
@@ -223,7 +224,7 @@ docker compose logs -f glpi
 
 **Onglet Configuration Générale :**
 - Nom de l'instance : `GLPI IRIS Nice - Helpdesk`
-- URL de l'application : `http://glpi.iris.a3n.fr:8080`
+- URL de l'application : `https://glpi.iris.a3n.fr:4433`
 - Fuseau horaire : `Europe/Paris`
 - Langue par défaut : `Français`
 
@@ -232,7 +233,7 @@ docker compose logs -f glpi
 - Format d'heure : `HH:MM`
 
 **Onglet Restrictions d'accès :**
-- Activer restriction par IP : Non (authentification AD suffit)
+- Activer restriction par IP : Non (authentification LDAP suffit)
 
 ### 4.3 Suppression des fichiers d'installation
 
@@ -249,30 +250,31 @@ exit
 
 ---
 
-## 5. Configuration LDAP (Active Directory)
+## 5. Configuration LDAP (OpenLDAP)
 
 ### 5.1 Ajout du serveur LDAP
 
 **Configuration → Authentification → Annuaire LDAP → Ajouter**
 
 **Informations principales :**
-- **Nom :** Active Directory IRIS Nice
+- **Nom :** IRIS Mediaschool
 - **Serveur par défaut :** Oui
 - **Actif :** Oui
 
 **Informations de connexion :**
-- **Serveur :** `ldap://ad.iris.a3n.fr` (ou IP du contrôleur de domaine)
-- **Port :** `389` (LDAP) ou `636` (LDAPS sécurisé)
-- **Filtre de connexion :** `(&(objectClass=user)(sAMAccountName=*))`
-- **BaseDN :** `DC=iris,DC=a3n,DC=fr`
-- **RootDN (utilisateur de liaison) :** `CN=service-ldap,OU=ServiceAccounts,DC=iris,DC=a3n,DC=fr`
+- **Serveur :** `openldap`
+- **Port :** `389`
+- **Filtre de connexion :** `(objectClass=inetOrgPerson)`
+- **BaseDN :** `dc=mediaschool,dc=local`
+- **RootDN (utilisateur de liaison) :** `cn=admin,dc=mediaschool,dc=local`
 - **Mot de passe (de liaison) :** `[mot_de_passe_compte_service_ldap]`
+- **Utiliser bind :** Oui
 
-**Utiliser TLS :** Oui (si LDAPS sur port 636)
+**Utiliser TLS :** Non
 
 **Informations de recherche :**
-- **Attribut de connexion :** `samaccountname`
-- **Champ de l'identifiant :** `samaccountname`
+- **Attribut de connexion :** `ui`
+- **Champ de l'identifiant :** `ui`
 - **Champ du nom :** `sn`
 - **Champ du prénom :** `givenname`
 - **Champ de l'email :** `mail`
@@ -280,7 +282,7 @@ exit
 
 **Filtre de recherche des utilisateurs :**
 ```ldap
-(&(objectClass=user)(objectCategory=person)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))
+(objectClass=inetOrgPerson)
 ```
 *Ce filtre exclut les comptes désactivés.*
 
@@ -294,8 +296,8 @@ exit
 **Configuration → Authentification → Annuaire LDAP → Tester**
 
 **Saisir :**
-- Identifiant : `[un_compte_AD_test]`
-- Mot de passe : `[mot_de_passe_AD]`
+- Identifiant : `[un_compte_LDAP_test]`
+- Mot de passe : `[mot_de_passe_LDAP]`
 
 **Résultat attendu :**
 ```
@@ -303,18 +305,18 @@ Connexion réussie
 Utilisateur trouvé : Prénom Nom (email@iris.a3n.fr)
 ```
 
-### 5.3 Import des utilisateurs depuis AD
+### 5.3 Import des utilisateurs depuis LDAP
 
 **Administration → Utilisateurs → Liaison annuaire LDAP**
 
-1. **Sélectionner l'annuaire :** Active Directory IRIS Nice
+1. **Sélectionner l'annuaire :** OpenLDAP IRIS Nice
 2. **Rechercher dans LDAP :**
    - Filtre : `*` (tous les utilisateurs)
-   - Résultat : Liste des utilisateurs AD
+   - Résultat : Liste des utilisateurs LDAP
 3. **Sélectionner les utilisateurs à importer**
 4. **Actions → Importer**
 
-**Résultat :** Les utilisateurs AD sont créés dans GLPI avec leurs informations (nom, prénom, email).
+**Résultat :** Les utilisateurs LDAP sont créés dans GLPI avec leurs informations (nom, prénom, email).
 
 ### 5.4 Synchronisation automatique
 
@@ -347,32 +349,32 @@ Utilisateur trouvé : Prénom Nom (email@iris.a3n.fr)
 | **Observateur** | Consultation uniquement | Manager, auditeur |
 | **Self-Service** | Création tickets uniquement | Utilisateur final |
 
-### 6.2 Mapping Groupes AD → Profils GLPI
+### 6.2 Mapping Groupes LDAP → Profils GLPI
 
 **Administration → Règles → Règles d'affectation d'entité et de droits**
 
-**Règle 1 — Admins AD → Super-Admin GLPI**
+**Règle 1 — Admins LDAP → Super-Admin GLPI**
 - **Nom :** Attribution Super-Admin pour groupe Admins
 - **Critères :**
-  - `Groupe LDAP` / `est` / `CN=Admins,OU=Groups,DC=iris,DC=a3n,DC=fr`
+  - `Groupe LDAP` / `est` / `CN=Admins,OU=Groups,dc=mediaschool,dc=local`
 - **Actions :**
   - `Profil` / `Attribuer` / `Super-Admin`
   - `Entité` / `Attribuer` / `Root entity`
   - `Récursif` / `Oui`
 
-**Règle 2 — Enseignants AD → Technicien GLPI**
+**Règle 2 — Enseignants LDAP → Technicien GLPI**
 - **Nom :** Attribution Technicien pour groupe Enseignants
 - **Critères :**
-  - `Groupe LDAP` / `est` / `CN=Enseignants,OU=Groups,DC=iris,DC=a3n,DC=fr`
+  - `Groupe LDAP` / `est` / `CN=Enseignants,OU=Groups,dc=mediaschool,dc=local`
 - **Actions :**
   - `Profil` / `Attribuer` / `Technicien`
   - `Entité` / `Attribuer` / `Root entity`
   - `Récursif` / `Oui`
 
-**Règle 3 — Étudiants AD → Self-Service GLPI**
+**Règle 3 — Étudiants LDAP → Self-Service GLPI**
 - **Nom :** Attribution Self-Service pour groupe Étudiants
 - **Critères :**
-  - `Groupe LDAP` / `est` / `CN=Etudiants,OU=Groups,DC=iris,DC=a3n,DC=fr`
+  - `Groupe LDAP` / `est` / `CN=Etudiants,OU=Groups,dc=mediaschool,dc=local`
 - **Actions :**
   - `Profil` / `Attribuer` / `Self-Service`
   - `Entité` / `Attribuer` / `Root entity`
@@ -573,7 +575,7 @@ Si un utilisateur répond à un ticket **Résolu**, il repasse automatiquement e
   ```
   ---
   Support IRIS Nice - Helpdesk GLPI
-  http://glpi.iris.a3n.fr:8080
+  https://glpi.iris.a3n.fr:4433
   ```
 
 **Onglet Configuration du serveur de messagerie :**
@@ -680,11 +682,11 @@ Si un utilisateur répond à un ticket **Résolu**, il repasse automatiquement e
 
 ### 10.1 Accès interface simplifiée
 
-**URL :** http://glpi.iris.a3n.fr:8080
+**URL :** https://glpi.iris.a3n.fr:4433
 
 **Connexion :**
-- Identifiant : `[compte_AD_etudiant]`
-- Mot de passe : `[mot_de_passe_AD]`
+- Identifiant : `[compte_LDAP_etudiant]`
+- Mot de passe : `[mot_de_passe_LDAP]`
 
 **Interface simplifiée affichée automatiquement pour le profil Self-Service.**
 
@@ -727,11 +729,11 @@ Si un utilisateur répond à un ticket **Résolu**, il repasse automatiquement e
 
 ### 11.1 Connexion technicien
 
-**URL :** http://glpi.iris.a3n.fr:8080
+**URL :** https://glpi.iris.a3n.fr:4433
 
 **Connexion :**
-- Identifiant : `[compte_AD_enseignant]`
-- Mot de passe : `[mot_de_passe_AD]`
+- Identifiant : `[compte_LDAP_enseignant]`
+- Mot de passe : `[mot_de_passe_LDAP]`
 
 **Interface complète GLPI affichée (pas interface simplifiée).**
 
@@ -855,9 +857,9 @@ labels:
 ```
 
 **Effet :**
-- Toutes les requêtes vers `http://glpi.iris.a3n.fr:8080` sont routées vers le conteneur GLPI
-- HTTP activé automatiquement avec certificat auto-signé
-- Redirection HTTP → HTTP
+- Toutes les requêtes vers `https://glpi.iris.a3n.fr:4433` sont routées vers le conteneur GLPI
+- HTTPS activé automatiquement avec certificat auto-signé
+- Redirection HTTP → HTTPS
 
 ### 13.2 Headers de sécurité
 
@@ -883,7 +885,7 @@ http:
 
 ```bash
 # Depuis un poste client (VLAN 20 ou 30)
-curl -I http://glpi.iris.a3n.fr:8080
+curl -I https://glpi.iris.a3n.fr:4433
 
 # Résultat attendu :
 HTTP/2 200
@@ -963,9 +965,9 @@ docker compose restart
 
 ### 15.1 Test authentification LDAP
 
-- [ ] Connexion avec compte AD (groupe Étudiants) → accès interface Self-Service
-- [ ] Connexion avec compte AD (groupe Enseignants) → accès interface Technicien
-- [ ] Connexion avec compte AD (groupe Admins) → accès interface Super-Admin
+- [ ] Connexion avec compte LDAP (groupe Étudiants) → accès interface Self-Service
+- [ ] Connexion avec compte LDAP (groupe Enseignants) → accès interface Technicien
+- [ ] Connexion avec compte LDAP (groupe Admins) → accès interface Super-Admin
 - [ ] Vérification mapping profils (utilisateurs importés avec le bon profil)
 
 ### 15.2 Test workflow complet
@@ -978,12 +980,12 @@ docker compose restart
 - [ ] Résolution ticket → email validation utilisateur
 - [ ] Validation utilisateur → clôture automatique après 7 jours
 
-### 15.3 Test accès HTTP
+### 15.3 Test accès HTTPS
 
-- [ ] Accès http://glpi.iris.a3n.fr:8080 depuis VLAN 20 → OK
-- [ ] Accès http://glpi.iris.a3n.fr:8080 depuis VLAN 30 → OK
-- [ ] Accès direct http://10.10.10.X:8080 depuis VLAN 20 → **Bloqué par firewall**
-- [ ] Certificat SSL accepté par poste client (GPO AD)
+- [ ] Accès https://glpi.iris.a3n.fr:4433 depuis VLAN 20 → OK
+- [ ] Accès https://glpi.iris.a3n.fr:4433 depuis VLAN 30 → OK
+- [ ] Accès direct au service interne GLPI depuis VLAN 20 → **Bloqué par firewall**
+- [ ] Certificat SSL accepté par poste client (GPO)
 
 ### 15.4 Test catégories et N1/N2/N3
 
@@ -999,13 +1001,13 @@ docker compose restart
 GLPI est désormais opérationnel et constitue le **service principal de l'infrastructure RP-03**.
 
 **Ce qui a été mis en place :**
-- ✅ Système de helpdesk professionnel avec workflow N1/N2/N3
-- ✅ Authentification centralisée via Active Directory (LDAP)
-- ✅ Catégories de tickets adaptées au contexte IRIS Nice
-- ✅ Notifications automatiques (email)
-- ✅ Interfaces adaptées (Self-Service, Technicien, Admin)
-- ✅ Intégration Traefik (HTTP sécurisé)
-- ✅ Sauvegardes automatisées
+-  Système de helpdesk professionnel avec workflow N1/N2/N3
+-  Authentification centralisée via OpenLDAP (LDAP)
+-  Catégories de tickets adaptées au contexte IRIS Nice
+-  Notifications automatiques (email)
+-  Interfaces adaptées (Self-Service, Technicien, Admin)
+-  Intégration Traefik (HTTPS sécurisé, port 4433)
+-  Sauvegardes automatisées
 
 **Statistiques prévisionnelles :**
 - Temps moyen de résolution N1 : 2-4 heures
@@ -1015,10 +1017,11 @@ GLPI est désormais opérationnel et constitue le **service principal de l'infra
 
 **Prochaines étapes :**
 - L7 — Guide utilisateur GLPI (pour former les étudiants et enseignants)
-- L9 — Tests complets du workflow (PV de recette)
 
 ---
 
 **Auteur :** Louka Lavenir  
 **Date :** 20 mars 2026  
 **Version :** 1.0
+
+

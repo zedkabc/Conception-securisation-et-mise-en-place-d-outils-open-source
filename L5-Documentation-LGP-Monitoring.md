@@ -140,7 +140,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin_password_secure
-      GF_SERVER_ROOT_URL: http://grafana.iris.a3n.fr
+      GF_SERVER_ROOT_URL: https://grafana.iris.a3n.fr:4433
       GF_AUTH_LDAP_ENABLED: "true"
       GF_AUTH_LDAP_CONFIG_FILE: /etc/grafana/ldap.toml
     volumes:
@@ -244,10 +244,10 @@ scrape_configs:
       module: [http_2xx]
     static_configs:
       - targets:
-          - http://glpi.iris.a3n.fr:8080
-          - http://cloud.iris.a3n.fr:8080
-          - http://wiki.iris.a3n.fr:8080
-          - http://grafana.iris.a3n.fr
+          - https://glpi.iris.a3n.fr:4433
+          - https://cloud.iris.a3n.fr:4433
+          - https://wiki.iris.a3n.fr:4433
+          - https://grafana.iris.a3n.fr:4433
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
@@ -350,7 +350,7 @@ groups:
       #     description: "Le certificat expire dans moins de 7 jours"
 ```
 
-**⚠️ Note sur les alertes :**
+** Note sur les alertes :**
 - **HighCPUUsage** : Se déclenche après 5 minutes de CPU > 90% (évite les faux positifs lors de pics courts)
 - **HighMemoryUsage** : Ajoutée pour superviser la RAM (conteneurs Docker peuvent fuir de la mémoire)
 - **ContainerRestarting** : Détecte les conteneurs instables (plus de 3 redémarrages en 1 heure)
@@ -415,7 +415,7 @@ schema_config:
         period: 24h
 ```
 
-**⚠️ Politique de rétention :**
+** Politique de rétention :**
 - **Maquette (RP-03)** : 30 jours (720h) — suffisant pour valider le fonctionnement et diagnostiquer les incidents
 - **Production recommandée** : 12 mois (8760h) — conformité LCEN (conservation des logs d'accès et d'authentification)
 - **Compaction automatique** : Les logs au-delà de la période de rétention sont supprimés automatiquement toutes les 2 heures
@@ -471,7 +471,7 @@ Pour un filtrage plus fin (par type d'événement Cisco), utiliser syslog-ng au 
 
 **Création du dashboard :**
 
-1. **Accéder à Grafana** → http://grafana.iris.a3n.fr
+1. **Accéder à Grafana** → https://grafana.iris.a3n.fr:4433
 2. **Dashboards** → New Dashboard → Add visualization
 3. **Datasource** → Loki
 4. **Requête LogQL** :
@@ -507,42 +507,42 @@ Pour un filtrage plus fin (par type d'événement Cisco), utiliser syslog-ng au 
 
 ## 6. Configuration Grafana
 
-### 5.1 Configuration LDAP (Active Directory)
+### 5.1 Configuration LDAP (OpenLDAP)
 
 **Fichier `grafana/ldap.toml` :**
 
 ```toml
 [[servers]]
-host = "ad.iris.a3n.fr"
+host = "openldap"
 port = 389
 use_ssl = false
 start_tls = false
 ssl_skip_verify = false
 
-bind_dn = "CN=service-ldap,OU=ServiceAccounts,DC=iris,DC=a3n,DC=fr"
+bind_dn = "cn=admin,dc=mediaschool,dc=local"
 bind_password = '[mot_de_passe_service_ldap]'
 
-search_filter = "(sAMAccountName=%s)"
-search_base_dns = ["DC=iris,DC=a3n,DC=fr"]
+search_filter = "(ui=%s)"
+search_base_dns = ["dc=mediaschool,dc=local"]
 
 [servers.attributes]
 name = "givenName"
 surname = "sn"
-username = "sAMAccountName"
+username = "ui"
 member_of = "memberOf"
 email = "mail"
 
 # Mapping groupes AD → Rôles Grafana
 [[servers.group_mappings]]
-group_dn = "CN=Admins,OU=Groups,DC=iris,DC=a3n,DC=fr"
+group_dn = "CN=Admins,OU=Groups,dc=mediaschool,dc=local"
 org_role = "Admin"
 
 [[servers.group_mappings]]
-group_dn = "CN=Enseignants,OU=Groups,DC=iris,DC=a3n,DC=fr"
+group_dn = "CN=Enseignants,OU=Groups,dc=mediaschool,dc=local"
 org_role = "Editor"
 
 [[servers.group_mappings]]
-group_dn = "CN=Etudiants,OU=Groups,DC=iris,DC=a3n,DC=fr"
+group_dn = "CN=Etudiants,OU=Groups,dc=mediaschool,dc=local"
 org_role = "Viewer"
 ```
 
@@ -570,3 +570,5 @@ org_role = "Viewer"
 **Auteur :** Vincent (repris par Louka Lavenir)  
 **Date :** 20 mars 2026  
 **Version :** 1.0
+
+

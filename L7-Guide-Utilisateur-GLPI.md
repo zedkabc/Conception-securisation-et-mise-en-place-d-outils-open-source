@@ -7,27 +7,28 @@
 
 ---
 
-## 📌 Introduction
+##  Introduction
 
 Bienvenue sur **GLPI**, votre nouveau système de helpdesk pour déclarer et suivre vos demandes d'assistance informatique.
+Le traitement des tickets suit une logique **ITIL** : qualification, priorisation, affectation, résolution et clôture.
 
 **Pourquoi GLPI ?**
-- ✅ **Plus aucune demande perdue** — Tout est tracé dans un ticket
-- ✅ **Suivi en temps réel** — Vous savez où en est votre demande
-- ✅ **Priorisation** — Les urgences sont traitées en premier
-- ✅ **Historique complet** — Toutes les interventions sont enregistrées
+-  **Plus aucune demande perdue** — Tout est tracé dans un ticket
+-  **Suivi en temps réel** — Vous savez où en est votre demande
+-  **Priorisation** — Les urgences sont traitées en premier
+-  **Historique complet** — Toutes les interventions sont enregistrées
 
 ---
 
-## 🔐 Se Connecter à GLPI
+##  Se Connecter à GLPI
 
 ### URL d'accès
 
-**Adresse :** http://glpi.iris.a3n.fr:8080
+**Adresse :** https://glpi.iris.a3n.fr:4433
 
 ### Identifiants
 
-**Utilisez votre compte Active Directory (AD) habituel :**
+**Utilisez votre compte LDAP habituel :**
 - **Identifiant :** Votre login Windows (ex : `j.dupont`)
 - **Mot de passe :** Votre mot de passe Windows
 
@@ -35,22 +36,22 @@ Bienvenue sur **GLPI**, votre nouveau système de helpdesk pour déclarer et sui
 
 ---
 
-## 🎯 Interface Simplifiée (Étudiants)
+##  Interface Simplifiée (Étudiants)
 
 Quand vous vous connectez avec un compte étudiant, vous voyez **l'interface simplifiée** (Self-Service).
 
 **Menu principal :**
-- 🎫 **Créer un ticket** — Déclarer un problème ou une demande
-- 📋 **Mes tickets** — Voir tous vos tickets en cours
-- 🔔 **Notifications** — Recevoir les mises à jour par email
+-  **Créer un ticket** — Déclarer un problème ou une demande
+-  **Mes tickets** — Voir tous vos tickets en cours
+-  **Notifications** — Recevoir les mises à jour par email
 
 ---
 
-## 📝 Créer un Ticket (Déclarer un Problème)
+##  Créer un Ticket (Déclarer un Problème)
 
 ### Étape 1 — Accéder au formulaire
 
-**Cliquer sur :** 🎫 **Créer un ticket**
+**Cliquer sur :**  **Créer un ticket**
 
 ### Étape 2 — Remplir le formulaire
 
@@ -63,20 +64,20 @@ Quand vous vous connectez avec un compte étudiant, vous voyez **l'interface sim
 
 **2. Catégorie**
 - Choisir la catégorie qui correspond à votre problème :
-  - 🌐 **Problème réseau** (WiFi, connexion filaire, lenteur)
-  - 🔑 **Problème login / compte** (mot de passe, connexion, droits)
-  - 💻 **Problème matériel** (PC, écran, clavier, imprimante)
-  - 📦 **Demande d'installation** (logiciel, accès à un service)
-  - 🔒 **Sécurité** (faille, virus, accès non autorisé)
-  - ❓ **Autre** (si aucune catégorie ne correspond)
+  -  **Problème réseau** (WiFi, connexion filaire, lenteur)
+  -  **Problème login / compte** (mot de passe, connexion, droits)
+  -  **Problème matériel** (PC, écran, clavier, imprimante)
+  -  **Demande d'installation** (logiciel, accès à un service)
+  -  **Sécurité** (faille, virus, accès non autorisé)
+  -  **Autre** (si aucune catégorie ne correspond)
 
 **3. Urgence**
 - Choisir le niveau d'urgence :
-  - 🔴 **Très haute** — Problème bloquant (impossible de travailler)
-  - 🟠 **Haute** — Problème important mais contournable
-  - 🟡 **Moyenne** — Problème gênant (par défaut)
-  - 🟢 **Basse** — Problème mineur
-  - ⚪ **Très basse** — Simple question ou demande d'info
+  -  **Très haute** — Problème bloquant (impossible de travailler)
+  -  **Haute** — Problème important mais contournable
+  -  **Moyenne** — Problème gênant (par défaut)
+  -  **Basse** — Problème mineur
+  -  **Très basse** — Simple question ou demande d'info
 
 **4. Description**
 - Décrire le problème en détail :
@@ -95,31 +96,31 @@ Mon téléphone se connecte sans problème au même WiFi.
 
 **5. Pièces jointes (optionnel)**
 - Vous pouvez joindre des captures d'écran, logs, etc.
-- **Cliquer sur :** 📎 **Ajouter un fichier**
+- **Cliquer sur :**  **Ajouter un fichier**
 
 ### Étape 3 — Soumettre le ticket
 
-**Cliquer sur :** ✅ **Soumettre le ticket**
+**Cliquer sur :**  **Soumettre le ticket**
 
-**✉️ Confirmation par email**
+** Confirmation par email**
 Vous recevrez un email de confirmation avec :
 - Le numéro de votre ticket
 - Un lien pour suivre son évolution
 
 ---
 
-## 👀 Suivre Mes Tickets
+##  Suivre Mes Tickets
 
 ### Voir la liste de mes tickets
 
-**Cliquer sur :** 📋 **Mes tickets**
+**Cliquer sur :**  **Mes tickets**
 
 **Vous voyez :**
-- 🆕 **Nouveau** — Ticket créé, en attente d'assignation
-- ⏳ **En cours** — Un technicien s'en occupe
-- ⏸️ **En attente** — Bloqué (en attente de votre réponse ou d'une ressource)
-- ✅ **Résolu** — Solution appliquée, en attente de votre validation
-- 🔒 **Clos** — Ticket terminé et validé
+-  **Nouveau** — Ticket créé, en attente d'assignation
+-  **En cours** — Un technicien s'en occupe
+-  **En attente** — Bloqué (en attente de votre réponse ou d'une ressource)
+-  **Résolu** — Solution appliquée, en attente de votre validation
+-  **Clos** — Ticket terminé et validé
 
 ### Voir les détails d'un ticket
 
@@ -134,9 +135,9 @@ Vous recevrez un email de confirmation avec :
 
 **Si le technicien vous pose une question ou demande des infos :**
 
-1. **Cliquer sur :** 💬 **Ajouter un suivi**
+1. **Cliquer sur :**  **Ajouter un suivi**
 2. Saisir votre message
-3. **Cliquer sur :** ✅ **Envoyer**
+3. **Cliquer sur :**  **Envoyer**
 
 **Le technicien recevra une notification par email.**
 
@@ -149,11 +150,11 @@ Vous recevrez un email de confirmation avec :
 
 ---
 
-## 📊 Comprendre les Niveaux d'Intervention (N1/N2/N3)
+##  Comprendre les Niveaux d'Intervention (N1/N2/N3)
 
 Votre ticket est automatiquement routé vers le bon niveau de support selon la catégorie :
 
-### 🥉 Niveau 1 (N1) — Support Basique
+###  Niveau 1 (N1) — Support Basique
 **Exemples :**
 - Mot de passe oublié
 - Création de compte
@@ -162,7 +163,7 @@ Votre ticket est automatiquement routé vers le bon niveau de support selon la c
 
 **Délai de résolution :** 2-4 heures
 
-### 🥈 Niveau 2 (N2) — Support Technique
+###  Niveau 2 (N2) — Support Technique
 **Exemples :**
 - Problème réseau (WiFi, VLAN, IP)
 - Problème matériel (PC, écran, imprimante)
@@ -170,7 +171,7 @@ Votre ticket est automatiquement routé vers le bon niveau de support selon la c
 
 **Délai de résolution :** 24 heures
 
-### 🥇 Niveau 3 (N3) — Expertise
+###  Niveau 3 (N3) — Expertise
 **Exemples :**
 - Problème de sécurité (faille, virus)
 - Bug applicatif
@@ -179,24 +180,24 @@ Votre ticket est automatiquement routé vers le bon niveau de support selon la c
 
 **Délai de résolution :** 48 heures
 
-**💡 Bon à savoir :** Si le ticket est complexe, il peut être **escaladé** (passé à un niveau supérieur). Vous serez notifié par email.
+** Bon à savoir :** Si le ticket est complexe, il peut être **escaladé** (passé à un niveau supérieur). Vous serez notifié par email.
 
 ---
 
-## 🔔 Notifications Email
+##  Notifications Email
 
 **Vous recevez un email automatiquement quand :**
-- ✅ Votre ticket est créé
-- 👤 Un technicien est assigné
-- 💬 Le technicien ajoute un suivi (message, question)
-- ✅ Votre ticket est résolu
-- 🔒 Votre ticket est clos
+-  Votre ticket est créé
+-  Un technicien est assigné
+-  Le technicien ajoute un suivi (message, question)
+-  Votre ticket est résolu
+-  Votre ticket est clos
 
-**⚠️ Vérifiez votre boîte email régulièrement !**
+** Vérifiez votre boîte email régulièrement !**
 
 ---
 
-## ❓ Questions Fréquentes (FAQ)
+##  Questions Fréquentes (FAQ)
 
 ### Combien de temps avant que mon ticket soit pris en charge ?
 
@@ -241,9 +242,9 @@ Votre ticket est automatiquement routé vers le bon niveau de support selon la c
 
 ---
 
-## 📖 Bonnes Pratiques
+##  Bonnes Pratiques
 
-### ✅ À FAIRE
+###  À FAIRE
 
 - **Donner un titre clair** — "Impossible de me connecter au WiFi" plutôt que "Problème"
 - **Choisir la bonne catégorie** — Aide le routage automatique
@@ -252,7 +253,7 @@ Votre ticket est automatiquement routé vers le bon niveau de support selon la c
 - **Répondre rapidement** — Si le technicien vous pose une question
 - **Valider la résolution** — Confirmer que le problème est résolu
 
-### ❌ À ÉVITER
+###  À ÉVITER
 
 - **Titre vague** — "Ça marche pas", "Problème", "Urgent"
 - **Pas de détails** — "Mon PC ne fonctionne pas" (quoi exactement ?)
@@ -262,17 +263,17 @@ Votre ticket est automatiquement routé vers le bon niveau de support selon la c
 
 ---
 
-## 🆘 Besoin d'Aide ?
+##  Besoin d'Aide ?
 
 **Si vous avez des difficultés avec GLPI :**
-- 📧 **Email :** support@iris.a3n.fr
-- 💬 **Créer un ticket** avec catégorie "Autre" et titre "Problème avec GLPI"
+-  **Email :** louka.lavenir@mediaschool.me
+-  **Créer un ticket** avec catégorie "Autre" et titre "Problème avec GLPI"
 
 ---
 
-## 📚 Résumé en 5 Étapes
+##  Résumé en 5 Étapes
 
-1. **Se connecter** — http://glpi.iris.a3n.fr:8080 avec votre compte Windows
+1. **Se connecter** — https://glpi.iris.a3n.fr:4433 avec votre compte Windows
 2. **Créer un ticket** — Titre, catégorie, urgence, description détaillée
 3. **Recevoir confirmation** — Email avec numéro de ticket
 4. **Suivre l'évolution** — Menu "Mes tickets"
@@ -280,7 +281,7 @@ Votre ticket est automatiquement routé vers le bon niveau de support selon la c
 
 ---
 
-**🎓 Bon usage de GLPI et bon courage dans vos études !**
+** Bon usage de GLPI et bon courage dans vos études !**
 
 ---
 
@@ -288,3 +289,5 @@ Votre ticket est automatiquement routé vers le bon niveau de support selon la c
 **Support IRIS Nice**  
 **Date :** 20 mars 2026  
 **Version :** 1.0
+
+

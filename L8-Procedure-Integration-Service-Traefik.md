@@ -8,13 +8,13 @@
 
 ## 1. Introduction
 
-Cette procédure détaille les étapes pour **intégrer un nouveau service web** dans le reverse proxy Traefik, afin de l'exposer en HTTP de manière sécurisée.
+Cette procédure détaille les étapes pour **intégrer un nouveau service web** dans le reverse proxy Traefik, afin de l'exposer en HTTPS de manière sécurisée (port 4433).
 
 **Services déjà intégrés (exemples) :**
-- GLPI (http://glpi.iris.a3n.fr:8080)
-- Nextcloud (http://cloud.iris.a3n.fr:8080)
-- Outline (http://wiki.iris.a3n.fr:8080)
-- Grafana (http://grafana.iris.a3n.fr)
+- GLPI (https://glpi.iris.a3n.fr:4433)
+- Nextcloud (https://cloud.iris.a3n.fr:4433)
+- Outline (https://wiki.iris.a3n.fr:4433)
+- Grafana (https://grafana.iris.a3n.fr:4433)
 
 ---
 
@@ -73,7 +73,7 @@ echo "10.10.10.10  mon-app.iris.a3n.fr" | sudo tee -a /etc/hosts
 nslookup mon-app.iris.a3n.fr
 
 # Résultat attendu :
-Server:  ad.iris.a3n.fr
+Server:  openldap
 Address:  10.10.10.1
 
 Name:    mon-app.iris.a3n.fr
@@ -106,11 +106,11 @@ services:
     environment:
       # Variables d'environnement du service
       APP_ENV: production
-      APP_URL: http://mon-app.iris.a3n.fr
+      APP_URL: https://mon-app.iris.a3n.fr:4433
     volumes:
       - ./volumes/mon-app-data:/data
     networks:
-      - traefik-network  # ⚠️ IMPORTANT : Réseau partagé avec Traefik
+      - traefik-network  #  IMPORTANT : Réseau partagé avec Traefik
     labels:
       # ========== CONFIGURATION TRAEFIK ==========
       - "traefik.enable=true"
@@ -118,10 +118,10 @@ services:
       # Règle de routage (nom de domaine)
       - "traefik.http.routers.mon-app.rule=Host(`mon-app.iris.a3n.fr`)"
       
-      # Point d'entrée HTTP
-      - "traefik.http.routers.mon-app.entrypoints=web"
+      # Point d'entrée HTTPS
+      - "traefik.http.routers.mon-app.entrypoints=websecure"
       
-      # Activer TLS (HTTP)
+      # Activer TLS (HTTPS)
       - "traefik.http.routers.mon-app.tls=true"
       
       # Port interne du service
@@ -141,7 +141,7 @@ networks:
 |:---|:---|:---|
 | `traefik.enable` | `true` | Active la détection par Traefik |
 | `traefik.http.routers.mon-app.rule` | `Host(\`mon-app.iris.a3n.fr\`)` | Règle de routage (nom de domaine) |
-| `traefik.http.routers.mon-app.entrypoints` | `web` | Point d'entrée HTTP (port 80) |
+| `traefik.http.routers.mon-app.entrypoints` | `websecure` | Point d'entrée HTTPS (port 4433) |
 | `traefik.http.routers.mon-app.tls` | `true` | Active TLS/SSL |
 | `traefik.http.services.mon-app.loadbalancer.server.port` | `8080` | Port interne du conteneur |
 | `traefik.http.routers.mon-app.middlewares` | `security-headers@file` | Middleware headers sécurité |
@@ -180,7 +180,7 @@ docker compose logs -f mon-app
 ### 6.1 Vérifier que Traefik détecte le service
 
 **Accéder au Dashboard Traefik :**
-- URL : http://traefik.iris.a3n.fr:8080
+- URL : https://traefik.iris.a3n.fr:4433
 - Se connecter avec compte admin
 
 **Vérifier dans l'onglet "HTTP Routers" :**
@@ -188,11 +188,11 @@ docker compose logs -f mon-app
 - Règle : `Host(\`mon-app.iris.a3n.fr\`)`
 - Statut : Vert (actif)
 
-### 6.2 Tester l'accès HTTP
+### 6.2 Tester l'accès HTTPS
 
 **Depuis un poste client (VLAN 20 ou 30) :**
 ```bash
-curl -I http://mon-app.iris.a3n.fr
+curl -I https://mon-app.iris.a3n.fr:4433
 
 # Résultat attendu :
 HTTP/2 200
@@ -204,8 +204,8 @@ x-xss-protection: 1; mode=block
 ```
 
 **Ouvrir dans un navigateur :**
-- URL : http://mon-app.iris.a3n.fr
-- Certificat SSL accepté (via GPO AD)
+- URL : https://mon-app.iris.a3n.fr:4433
+- Certificat SSL accepté (via GPO)
 - Service accessible
 
 ---
@@ -214,13 +214,13 @@ x-xss-protection: 1; mode=block
 
 ### 7.1 Bloquer l'accès direct au port interne
 
-**Objectif :** Forcer le passage par Traefik (HTTP) uniquement.
+**Objectif :** Forcer le passage par Traefik (HTTPS) uniquement.
 
 **Ajouter règle iptables sur le serveur :**
 ```bash
-# Autoriser HTTP depuis utilisateurs (VLAN 20, 30)
-iptables -A INPUT -p tcp --dport 80 -s 10.10.20.0/24 -j ACCEPT
-iptables -A INPUT -p tcp --dport 80 -s 10.10.30.0/24 -j ACCEPT
+# Autoriser HTTPS depuis utilisateurs (VLAN 20, 30)
+iptables -A INPUT -p tcp --dport 4433 -s 10.10.20.0/24 -j ACCEPT
+iptables -A INPUT -p tcp --dport 4433 -s 10.10.30.0/24 -j ACCEPT
 
 # Bloquer accès direct au port interne (8080) depuis utilisateurs
 iptables -A INPUT -p tcp --dport 8080 -s 10.10.20.0/24 -j DROP
@@ -237,13 +237,13 @@ netfilter-persistent save
 
 **Depuis un poste client (VLAN 20) :**
 ```bash
-curl http://10.10.10.10:8080
+nc -zv 10.10.10.10 8080
 # Résultat attendu : timeout ou connexion refusée
 ```
 
 **Depuis un poste admin (VLAN 99) :**
 ```bash
-curl http://10.10.10.10:8080
+nc -zv 10.10.10.10 8080
 # Résultat attendu : réponse du service
 ```
 
@@ -253,17 +253,20 @@ curl http://10.10.10.10:8080
 
 **Si le service supporte l'authentification LDAP :**
 
-**Paramètres LDAP unifiés (Active Directory) :**
-- **Serveur LDAP :** `ldap://ad.iris.a3n.fr:389`
-- **Base DN :** `DC=iris,DC=a3n,DC=fr`
-- **Bind DN :** `CN=service-ldap,OU=ServiceAccounts,DC=iris,DC=a3n,DC=fr`
+**Paramètres LDAP unifiés (OpenLDAP) :**
+- **Nom :** `IRIS Mediaschool`
+- **Serveur LDAP :** `openldap`
+- **Port :** `389`
+- **Base DN :** `dc=mediaschool,dc=local`
+- **Bind DN :** `cn=admin,dc=mediaschool,dc=local`
 - **Mot de passe :** `[mot_de_passe_service_ldap]`
-- **Filtre utilisateurs :** `(&(objectClass=user)(sAMAccountName=%u))`
+- **Filtre utilisateurs :** `(objectClass=inetOrgPerson)`
+- **Champ de l'identifiant :** `ui`
 
-**Mapping groupes AD → Rôles applicatifs :**
-- `CN=Admins,OU=Groups,DC=iris,DC=a3n,DC=fr` → Admin
-- `CN=Enseignants,OU=Groups,DC=iris,DC=a3n,DC=fr` → Utilisateur avancé
-- `CN=Etudiants,OU=Groups,DC=iris,DC=a3n,DC=fr` → Utilisateur standard
+**Mapping groupes LDAP → Rôles applicatifs :**
+- `CN=Admins,OU=Groups,dc=mediaschool,dc=local` → Admin
+- `CN=Enseignants,OU=Groups,dc=mediaschool,dc=local` → Utilisateur avancé
+- `CN=Etudiants,OU=Groups,dc=mediaschool,dc=local` → Utilisateur standard
 
 ---
 
@@ -271,12 +274,12 @@ curl http://10.10.10.10:8080
 
 ### 9.1 Checklist de validation
 
-- [ ] Service accessible via HTTP (http://mon-app.iris.a3n.fr)
-- [ ] Certificat SSL accepté par les navigateurs (GPO AD)
-- [ ] Redirection HTTP → HTTP automatique
+- [ ] Service accessible via HTTPS (https://mon-app.iris.a3n.fr:4433)
+- [ ] Certificat SSL accepté par les navigateurs (GPO)
+- [ ] Redirection HTTP → HTTPS automatique
 - [ ] Headers de sécurité présents (curl -I)
 - [ ] Accès direct au port interne bloqué (depuis VLAN 20/30)
-- [ ] Accès HTTP autorisé depuis VLAN 20/30
+- [ ] Accès HTTPS autorisé depuis VLAN 20/30
 - [ ] Dashboard Traefik affiche le routeur
 - [ ] Authentification LDAP fonctionnelle (si applicable)
 
@@ -284,7 +287,7 @@ curl http://10.10.10.10:8080
 
 ```bash
 # Test avec Apache Bench
-ab -n 1000 -c 10 http://mon-app.iris.a3n.fr/
+ab -n 1000 -c 10 https://mon-app.iris.a3n.fr:4433/
 
 # Vérifier les temps de réponse dans les logs Traefik
 docker compose -f /opt/iris-services/traefik/docker-compose.yml logs traefik | grep "mon-app"
@@ -408,7 +411,7 @@ docker compose up -d
 
 ### 12.3 Accès
 
-**URL :** http://pma.iris.a3n.fr  
+**URL :** https://pma.iris.a3n.fr:4433  
 **Accès réservé :** VLAN 99 (Administration uniquement)
 
 ---
@@ -434,3 +437,5 @@ Cette procédure garantit une **intégration sécurisée et standardisée** de t
 **Auteur :** Louka Lavenir  
 **Date :** 20 mars 2026  
 **Version :** 1.0
+
+

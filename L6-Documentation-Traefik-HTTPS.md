@@ -1,4 +1,4 @@
-# L6 — Documentation Traefik + HTTP (Reverse Proxy)
+# L6 — Documentation Traefik + HTTPS (Reverse Proxy)
 **Projet :** RP-03 — Déploiement d'outils open source pour CFA IRIS Nice  
 **Service :** Traefik (Reverse Proxy centralisé)  
 **Auteur :** Louka Lavenir  
@@ -10,7 +10,7 @@
 
 Traefik est un reverse proxy moderne et automatisé, conçu pour les architectures conteneurisées (Docker, Kubernetes).
 
-**Dans le cadre du projet RP-03, Traefik constitue le point d'entrée unique** pour tous les services applicatifs (GLPI, Nextcloud, Outline, Grafana), en HTTP sécurisé.
+**Dans le cadre du projet RP-03, Traefik constitue le point d'entrée unique** pour tous les services applicatifs (GLPI, Nextcloud, Outline, Grafana), en HTTPS sécurisé (port 4433).
 
 ---
 
@@ -32,39 +32,26 @@ Le reverse proxy permet de **rediriger l'URL saisie vers le bon service**. C'est
 
 | Critère | Traefik | Nginx | Caddy |
 |:---|:---|:---|:---|
-| **Configuration automatique** | ✅ Détecte les conteneurs Docker | ❌ Config manuelle par service | ⚠️ Semi-automatique |
-| **Let's Encrypt intégré (ACME)** | ✅ Oui | ❌ Non (certbot externe) | ✅ Oui |
-| **Support TCP/UDP natif** | ✅ Oui | ⚠️ Limité | ⚠️ Limitée |
-| **Dashboard intégré** | ✅ Oui | ❌ Non | ❌ Non |
-| **Middlewares intégrés** | ✅ Oui (auth, rate limiting, compression) | ⚠️ Via modules | ⚠️ Via plugins |
-| **Erreurs humaines** | ✅ Minimales (config automatique) | ⚠️ Risque élevé (fichiers manuels) | ⚠️ Modéré |
+| **Configuration automatique** |  Détecte les conteneurs Docker |  Config manuelle par service |  Semi-automatique |
+| **Let's Encrypt intégré (ACME)** |  Oui |  Non (certbot externe) |  Oui |
+| **Support TCP/UDP natif** |  Oui |  Limité |  Limitée |
+| **Dashboard intégré** |  Oui |  Non |  Non |
+| **Middlewares intégrés** |  Oui (auth, rate limiting, compression) |  Via modules |  Via plugins |
+| **Erreurs humaines** |  Minimales (config automatique) |  Risque élevé (fichiers manuels) |  Modéré |
 
 **Verdict :** Traefik est **le meilleur choix pour une architecture Docker** grâce à son auto-découverte des conteneurs, son intégration ACME, et son dashboard intégré.
 
 ---
 
-## 3bis. HTTP Temporaire — Contexte et Migration
+## 3bis. HTTPS actif — Port 4433
 
-### 3bis.1 Pourquoi HTTP actuellement ?
-
-Idéalement, il faudrait être en HTTPS, mais malheureusement **la topologie de l'école nous l'en empêche**.
-
-**Raisons techniques :**
-
-1. **Infrastructure réseau interne** : L'école IRIS Nice n'est pas exposée sur Internet public
-2. **Let's Encrypt impossible** : Le protocole ACME nécessite une validation accessible depuis Internet
-3. **Domaine `.a3n.fr` interne** : Le domaine est géré localement par le DNS interne
-
-**⚠️ Ce n'est pas un oubli**, c'est une **contrainte d'environnement**.
-
-### 3bis.2 Chemin de migration vers HTTPS
-
-La configuration Traefik est **déjà préparée** pour le passage en HTTPS. Voici les options disponibles :
+L’infrastructure est désormais publiée en **HTTPS** avec un point d’entrée unique sur le **port 4433**.
+Le port 80 peut rester ouvert uniquement pour rediriger automatiquement les clients vers HTTPS.
 
 **Option A : Certificat auto-signé distribué par GPO**
 
 1. **Générer le certificat wildcard** : `openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout iris.a3n.fr.key -out iris.a3n.fr.crt -subj "/CN=*.iris.a3n.fr"`
-2. **Distribuer via GPO Active Directory** : Computer Configuration → Public Key Policies → Trusted Root Certification Authorities → Import `iris.a3n.fr.crt`
+2. **Distribuer via GPO** : Computer Configuration → Public Key Policies → Trusted Root Certification Authorities → Import `iris.a3n.fr.crt`
 3. **Décommenter les sections HTTPS dans Traefik** : entrypoint `websecure`, section `tls`, redirection HTTP → HTTPS
 4. **Redémarrer Traefik** : `docker compose restart traefik`
 
@@ -85,15 +72,15 @@ La configuration Traefik est **déjà préparée** pour le passage en HTTPS. Voi
 4. **Modifier les labels des services** : `traefik.http.routers.<service>.tls.certresolver=letsencrypt`
 5. **Redémarrer Traefik** : Let's Encrypt génère automatiquement les certificats
 
-**Option C : Certificat interne via ADCS (Active Directory Certificate Services)**
+**Option C : Certificat interne via PKI d'établissement**
 
-1. **Installer ADCS** sur le contrôleur de domaine Windows Server
+1. **Installer l'autorité de certification interne** sur le serveur d'infrastructure
 2. **Générer une demande de certificat** (CSR) : `openssl req -new -newkey rsa:2048 -nodes -keyout iris.a3n.fr.key -out iris.a3n.fr.csr`
 3. **Soumettre la CSR à ADCS** et obtenir le certificat signé
 4. **Copier le certificat** dans `/opt/iris-services/traefik/certs/`
-5. **Décommenter les sections HTTP dans Traefik**
+5. **Vérifier la publication HTTPS sur Traefik**
 
-**Conclusion :** La configuration est **prête pour HTTPS**. Le passage nécessite uniquement l'obtention d'un certificat, selon l'option choisie. Mais actuellement, **la topologie de l'école empêche le déploiement HTTPS**.
+**Conclusion :** La configuration est active en HTTPS sur le port 4433.
 
 ---
 
@@ -125,14 +112,14 @@ services:
     image: traefik:v2.11
     restart: always
     ports:
-      - "80:80"       # HTTP — point d'entrée utilisateurs
-      # - "443:443"   # HTTP — à activer quand certificat déployé
+      - "80:80"       # HTTP — redirection vers HTTPS
+      - "4433:443"    # HTTPS — point d'entrée utilisateurs
       - "8080:8080"   # Dashboard Traefik (accès VLAN admin uniquement)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik.yml:/etc/traefik/traefik.yml:ro
       - ./dynamic:/etc/traefik/dynamic:ro
-      # - ./certs:/certs:ro           # À activer avec HTTP
+      # - ./certs:/certs:ro           # À activer avec HTTPS
       # - ./acme:/acme                # À activer avec Let's Encrypt
     networks:
       - traefik-network
@@ -140,14 +127,15 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.dashboard.rule=Host(`traefik.iris.a3n.fr`)"
       - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.entrypoints=web"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls=true"
 
 networks:
   traefik-network:
     external: true
 ```
 
-**⚠️ Note :** Le port 443 (HTTP) est commenté car aucun certificat n'est déployé actuellement. La configuration est préparée pour le passage en HTTP dès qu'un certificat sera disponible.
+**Note :** Le service utilisateur est publié en HTTPS via le mapping `4433:443`.
 
 ### 4.3 Fichier traefik.yml (Configuration Statique)
 
@@ -166,19 +154,17 @@ api:
 entryPoints:
   web:
     address: ":80"
-    # Pas de redirection HTTP vers HTTP pour l'instant
-    # Quand HTTP sera actif, décommenter :
-    # http:
-    #   redirections:
-    #     entryPoint:
-    #       to: websecure
-    #       scheme: HTTP
-    #       permanent: true
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
 
-  # websecure:
-  #   address: ":443"
-  #   http:
-  #     tls: true
+  websecure:
+    address: ":443"
+    http:
+      tls: true
 
 # Fournisseurs
 providers:
@@ -191,7 +177,7 @@ providers:
     directory: "/etc/traefik/dynamic"
     watch: true
 
-# Certificats SSL (à activer avec HTTP)
+# Certificats SSL
 # tls:
 #   stores:
 #     default:
@@ -208,11 +194,11 @@ accessLog:
   bufferingSize: 100
 ```
 
-**⚠️ Points importants :**
-- **Un seul entrypoint `web` sur le port 80** pour HTTP
-- **L'entrypoint `websecure` (port 443)** est préparé mais commenté — à activer quand le certificat sera disponible
-- **La redirection HTTP → HTTP** est préparée mais commentée
-- **La section TLS** est préparée mais commentée — à activer avec HTTP
+**Points importants :**
+- **Entrypoint `web` sur le port 80** uniquement pour la redirection.
+- **Entrypoint `websecure` sur le port 443** pour les services HTTPS.
+- **Redirection HTTP → HTTPS** active.
+- **Section TLS** active.
 
 ### 4.4 Fichier dynamic/middlewares.yml (Headers Sécurité)
 
@@ -254,11 +240,11 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 openssl x509 -in iris.a3n.fr.crt -text -noout
 ```
 
-### 5.2 Distribution via GPO (Active Directory)
+### 5.2 Distribution via GPO
 
 **Pour que les postes clients acceptent le certificat auto-signé :**
 
-1. **Copier le certificat** `iris.a3n.fr.crt` sur le contrôleur de domaine AD
+1. **Copier le certificat** `iris.a3n.fr.crt` sur le serveur de gestion
 2. **Créer une GPO :**
    - **Computer Configuration → Policies → Windows Settings → Security Settings → Public Key Policies → Trusted Root Certification Authorities**
    - **Import** → Sélectionner `iris.a3n.fr.crt`
@@ -288,9 +274,9 @@ docker compose logs -f traefik
 
 ### 6.3 Accès Dashboard Traefik
 
-**URL :** http://traefik.iris.a3n.fr:8080
+**URL :** https://traefik.iris.a3n.fr:4433
 
-**⚠️ SÉCURITÉ :** Le dashboard doit être accessible **uniquement depuis VLAN 99 (Administration)**.
+** SÉCURITÉ :** Le dashboard doit être accessible **uniquement depuis VLAN 99 (Administration)**.
 
 **Configuration firewall :**
 ```bash
@@ -313,39 +299,40 @@ services:
     # ... (config existante)
     networks:
       - glpi-network        # Réseau interne pour MariaDB
-      - traefik-network     # ⚠️ IMPORTANT : Réseau partagé avec Traefik
+      - traefik-network     #  IMPORTANT : Réseau partagé avec Traefik
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.glpi.rule=Host(`glpi.iris.a3n.fr`)"
-      - "traefik.http.routers.glpi.entrypoints=web"
+      - "traefik.http.routers.glpi.entrypoints=websecure"
+      - "traefik.http.routers.glpi.tls=true"
       - "traefik.http.services.glpi.loadbalancer.server.port=80"
-      - "traefik.docker.network=traefik-network"  # ⚠️ IMPORTANT : Force Traefik à utiliser ce réseau
+      - "traefik.docker.network=traefik-network"  #  IMPORTANT : Force Traefik à utiliser ce réseau
       - "traefik.http.routers.glpi.middlewares=security-headers@file"
 
 networks:
   glpi-network:
     driver: bridge
   traefik-network:
-    external: true  # ⚠️ IMPORTANT : Réseau créé en dehors du docker-compose
+    external: true  #  IMPORTANT : Réseau créé en dehors du docker-compose
 ```
 
-**⚠️ Points critiques :**
+** Points critiques :**
 - **Deux réseaux :** Le service doit être sur son réseau interne (pour communiquer avec sa base de données) ET sur `traefik-network` (pour être accessible via Traefik)
 - **Label `traefik.docker.network`** : Quand un conteneur est sur plusieurs réseaux, ce label indique à Traefik quel réseau utiliser. Sans ce label, Traefik peut essayer de router via le mauvais réseau → erreur 502 Bad Gateway
-- **Pas de section `ports:`** : Le service n'expose aucun port sur l'hôte. Seul Traefik expose le port 80. Cela évite les conflits de ports et renforce la sécurité (les services ne sont accessibles que via Traefik)
+- **Pas de section `ports:`** : Le service n'expose aucun port sur l'hôte. Seul Traefik expose le port 4433 pour les utilisateurs. Cela évite les conflits de ports et renforce la sécurité (les services ne sont accessibles que via Traefik)
 
 **Redémarrer le conteneur :**
 ```bash
 docker compose restart glpi
 ```
 
-**Traefik détecte automatiquement le service et le rend accessible via HTTP.**
+**Traefik détecte automatiquement le service et le rend accessible via HTTPS.**
 
 ### 7.2 Vérification
 
 ```bash
-# Tester l'accès HTTP
-curl -I http://glpi.iris.a3n.fr:8080
+# Tester l'accès HTTPS
+curl -I https://glpi.iris.a3n.fr:4433
 
 # Résultat attendu :
 HTTP/2 200
@@ -356,7 +343,7 @@ x-frame-options: SAMEORIGIN
 
 ---
 
-## 8. Redirection HTTP → HTTP
+## 8. Redirection HTTP → HTTPS
 
 **Configuré automatiquement dans `traefik.yml` :**
 
@@ -367,12 +354,12 @@ entryPoints:
     http:
       redirections:
         entryPoint:
-          to: web
-          scheme: HTTP
+          to: websecure
+          scheme: https
           permanent: true
 ```
 
-**Effet :** Toute requête HTTP est redirigée automatiquement vers HTTP (code 301).
+**Effet :** Toute requête HTTP est redirigée automatiquement vers HTTPS (code 301).
 
 ---
 
@@ -382,7 +369,7 @@ entryPoints:
 
 | Header | Valeur | Protection |
 |:---|:---|:---|
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Force HTTP pendant 1 an |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Force HTTPS pendant 1 an |
 | `X-Content-Type-Options` | `nosniff` | Anti MIME sniffing |
 | `X-Frame-Options` | `SAMEORIGIN` | Anti clickjacking |
 | `X-XSS-Protection` | `1; mode=block` | Anti XSS |
@@ -392,11 +379,11 @@ entryPoints:
 
 ## 10. Tests de Validation
 
-- [ ] Accès http://glpi.iris.a3n.fr:8080 → OK
-- [ ] Accès http://cloud.iris.a3n.fr:8080 → OK
-- [ ] Accès http://wiki.iris.a3n.fr:8080 → OK
-- [ ] Accès http://grafana.iris.a3n.fr → OK
-- [ ] Redirection HTTP → HTTP automatique
+- [ ] Accès https://glpi.iris.a3n.fr:4433 → OK
+- [ ] Accès https://cloud.iris.a3n.fr:4433 → OK
+- [ ] Accès https://wiki.iris.a3n.fr:4433 → OK
+- [ ] Accès https://grafana.iris.a3n.fr:4433 → OK
+- [ ] Redirection HTTP → HTTPS automatique
 - [ ] Certificat SSL accepté par postes clients (GPO)
 - [ ] Headers de sécurité présents (curl -I)
 - [ ] Dashboard Traefik accessible uniquement VLAN 99
@@ -406,3 +393,5 @@ entryPoints:
 **Auteur :** Louka Lavenir  
 **Date :** 20 mars 2026  
 **Version :** 1.0
+
+

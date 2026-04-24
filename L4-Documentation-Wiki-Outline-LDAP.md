@@ -21,13 +21,13 @@ Outline est un wiki moderne et collaboratif, alternative open source à Notion o
 
 | Critère | Outline | Notion | Confluence | MediaWiki | Dokuwiki | BookStack |
 |:---|:---|:---|:---|:---|:---|:---|
-| **Souveraineté données** | ✅ Auto-hébergé | ❌ Cloud | ❌ Cloud | ✅ Auto-hébergé | ✅ Auto-hébergé | ✅ Auto-hébergé |
-| **Interface moderne** | ✅ Oui | ✅ Oui | ⚠️ Complexe | ❌ Datée | ⚠️ Simple | ✅ Moderne |
-| **Co-édition temps réel** | ✅ Oui | ✅ Oui | ✅ Oui | ❌ Non | ❌ Non | ❌ Non |
-| **Authentification LDAP** | ❌ Non (OIDC uniquement) | ❌ Non | ✅ Oui | ✅ Oui | ✅ Oui | ✅ Oui |
-| **Coût à l'échelle** | ✅ Indépendant | ❌ Lié au nombre d'utilisateurs | ❌ Lié au nombre d'utilisateurs | ✅ Indépendant | ✅ Indépendant | ✅ Indépendant |
+| **Souveraineté données** |  Auto-hébergé |  Cloud |  Cloud |  Auto-hébergé |  Auto-hébergé |  Auto-hébergé |
+| **Interface moderne** |  Oui |  Oui |  Complexe |  Datée |  Simple |  Moderne |
+| **Co-édition temps réel** |  Oui |  Oui |  Oui |  Non |  Non |  Non |
+| **Authentification LDAP** |  Non (OIDC uniquement) |  Non |  Oui |  Oui |  Oui |  Oui |
+| **Coût à l'échelle** |  Indépendant |  Lié au nombre d'utilisateurs |  Lié au nombre d'utilisateurs |  Indépendant |  Indépendant |  Indépendant |
 
-**⚠️ Point d'attention :** Outline ne supporte pas nativement l'authentification LDAP. Il utilise **OIDC (OpenID Connect)** ou **SAML**. Pour intégrer Outline avec l'Active Directory de l'école, deux options sont possibles :
+** Point d'attention :** Outline ne supporte pas nativement l'authentification LDAP. Il utilise **OIDC (OpenID Connect)** ou **SAML**. Pour intégrer Outline avec l'OpenLDAP de l'école, deux options sont possibles :
 
 1. **Utiliser un bridge OIDC** (Authelia ou Dex) qui se connecte à l'AD en LDAP et expose une interface OIDC pour Outline
 2. **Remplacer Outline par Dokuwiki ou BookStack** qui supportent LDAP nativement
@@ -89,7 +89,7 @@ services:
       UTILS_SECRET: ${OUTLINE_UTILS_SECRET}
       DATABASE_URL: postgres://outline_user:${OUTLINE_DB_PASSWORD}@postgres-outline:5432/outline_db
       REDIS_URL: redis://redis-outline:6379
-      URL: http://wiki.iris.a3n.fr
+      URL: https://wiki.iris.a3n.fr:4433
       PORT: 3000
       FORCE_HTTPS: "false"
       ENABLE_UPDATES: "true"
@@ -97,9 +97,9 @@ services:
       # OIDC Configuration (Authelia bridge vers AD)
       OIDC_CLIENT_ID: ${OUTLINE_OIDC_CLIENT_ID}
       OIDC_CLIENT_SECRET: ${OUTLINE_OIDC_CLIENT_SECRET}
-      OIDC_AUTH_URI: http://authelia.iris.a3n.fr/api/oidc/authorization
-      OIDC_TOKEN_URI: http://authelia.iris.a3n.fr/api/oidc/token
-      OIDC_USERINFO_URI: http://authelia.iris.a3n.fr/api/oidc/userinfo
+      OIDC_AUTH_URI: https://authelia.iris.a3n.fr:4433/api/oidc/authorization
+      OIDC_TOKEN_URI: https://authelia.iris.a3n.fr:4433/api/oidc/token
+      OIDC_USERINFO_URI: https://authelia.iris.a3n.fr:4433/api/oidc/userinfo
       OIDC_USERNAME_CLAIM: preferred_username
       OIDC_DISPLAY_NAME: "Connexion IRIS Nice (AD)"
       OIDC_SCOPES: "openid profile email"
@@ -125,7 +125,7 @@ networks:
     external: true
 ```
 
-**⚠️ Important :** Les variables LDAP_* présentes dans les anciennes versions ne sont **pas supportées** par Outline. L'authentification se fait via **OIDC uniquement**.
+** Important :** Les variables LDAP_* présentes dans les anciennes versions ne sont **pas supportées** par Outline. L'authentification se fait via **OIDC uniquement**.
 
 ### 3.3 Fichier .env (Sécurité)
 
@@ -163,7 +163,7 @@ docker compose up -d
 docker compose logs -f outline
 ```
 
-**Accès initial :** http://wiki.iris.a3n.fr:8080
+**Accès initial :** https://wiki.iris.a3n.fr:4433
 
 ---
 
@@ -172,29 +172,29 @@ docker compose logs -f outline
 **Structure initiale créée :**
 
 ```
-📁 Infrastructure
+ Infrastructure
   ├── RP-01 - Architecture réseau
   ├── Équipements Cisco
   └── VLANs et segmentation
 
-📁 Active Directory
+ OpenLDAP
   ├── RP-02 - Configuration AD
   ├── Comptes et groupes
   └── GPO
 
-📁 Services Applicatifs
+ Services Applicatifs
   ├── RP-03 - Vue d'ensemble
   ├── GLPI (Helpdesk)
   ├── Nextcloud (Cloud)
   ├── Monitoring (LGP)
   └── Traefik (Reverse Proxy)
 
-📁 Procédures
+ Procédures
   ├── Création compte utilisateur
   ├── Intégration nouveau service
   └── Gestion incidents
 
-📁 Guides Utilisateurs
+ Guides Utilisateurs
   ├── Guide GLPI (étudiants)
   ├── Guide Nextcloud
   └── Guide Wiki
@@ -227,3 +227,5 @@ docker compose logs -f outline
 **Auteur :** Louka Lavenir  
 **Date :** 20 mars 2026  
 **Version :** 1.0
+
+

@@ -48,16 +48,14 @@ L'infrastructure réseau de l'école IRIS Nice est déjà opérationnelle depuis
 
 ### 2.1 Vue d'ensemble
 
-L'architecture applicative repose sur une **approche conteneurisée (Docker)** avec un **reverse proxy centralisé (Traefik)** qui expose tous les services en HTTP.
+L'architecture applicative repose sur une **approche conteneurisée (Docker)** avec un **reverse proxy centralisé (Traefik)** qui expose tous les services en HTTPS sur le port 4433.
 
-**⚠️ Note importante — HTTP temporaire :**
-
-Idéalement, il faudrait être en HTTPS, mais malheureusement **la topologie de l'école nous l'en empêche**. L'infrastructure réseau IRIS Nice n'est pas exposée sur Internet, ce qui empêche l'obtention de certificats Let's Encrypt via le protocole ACME. La configuration Traefik est toutefois préparée pour le passage en HTTPS (entrypoint websecure sur port 443, redirection HTTP → HTTPS) dès qu'un certificat sera disponible.
+**Note importante :** Le déploiement est désormais actif en HTTPS (port 4433), avec redirection HTTP vers HTTPS.
 
 **Service Principal :** GLPI (Helpdesk & Ticketing)  
 **Services Secondaires :** Nextcloud, Outline, LGP (Monitoring), Traefik
 
-**Authentification unifiée :** Tous les services s'authentifient via **LDAP** sur l'Active Directory existant (RP-02).
+**Authentification unifiée :** Tous les services s'authentifient via **LDAP** sur l'OpenLDAP existant (RP-02).
 
 ### 2.2 Schéma architecture applicative
 
@@ -99,7 +97,7 @@ Idéalement, il faudrait être en HTTPS, mais malheureusement **la topologie de 
                                     │ LDAP Bind
                                     │
                           ┌─────────▼──────────┐
-                          │  Active Directory  │
+                          │  OpenLDAP  │
                           │  (RP-02)           │
                           │  Authentification  │
                           │  Groupes AD        │
@@ -119,14 +117,14 @@ Idéalement, il faudrait être en HTTPS, mais malheureusement **la topologie de 
 
 | Service | URL | Authentification | Port interne |
 |:---|:---|:---|:---|
-| **GLPI (Helpdesk)** | http://glpi.iris.a3n.fr | LDAP (AD) | 80 |
-| **Nextcloud (Cloud)** | http://cloud.iris.a3n.fr | LDAP (AD) | 80 |
-| **Outline (Wiki)** | http://wiki.iris.a3n.fr | OIDC via bridge LDAP | 3000 |
-| **Grafana (Monitoring)** | http://grafana.iris.a3n.fr | LDAP (AD) | 3000 |
+| **GLPI (Helpdesk)** | https://glpi.iris.a3n.fr:4433 | LDAP | 80 |
+| **Nextcloud (Cloud)** | https://cloud.iris.a3n.fr:4433 | LDAP | 80 |
+| **Outline (Wiki)** | https://wiki.iris.a3n.fr:4433 | OIDC via bridge LDAP | 3000 |
+| **Grafana (Monitoring)** | https://grafana.iris.a3n.fr:4433 | LDAP | 3000 |
 
-**Note :** Outline ne supporte pas l'authentification LDAP nativement. Un bridge OIDC (Authelia ou Dex) est nécessaire pour connecter Outline à l'Active Directory, ou remplacer Outline par Dokuwiki/BookStack qui supportent LDAP nativement.
+**Note :** Outline ne supporte pas l'authentification LDAP nativement. Un bridge OIDC (Authelia ou Dex) est nécessaire pour connecter Outline à l'OpenLDAP, ou remplacer Outline par Dokuwiki/BookStack qui supportent LDAP nativement.
 
-**Certificat HTTP :** Auto-signé avec CN=*.iris.a3n.fr, distribué via GPO AD aux postes clients.
+**Certificat HTTPS :** Auto-signé avec CN=*.iris.a3n.fr, distribué via GPO aux postes clients.
 
 ---
 
@@ -147,14 +145,14 @@ Utilisateur (VLAN 20/30)
         └─→ Grafana:3000
 ```
 
-### 3.2 Flux applicatifs → Active Directory
+### 3.2 Flux applicatifs → OpenLDAP
 
 ```
 GLPI / Nextcloud / Outline / Grafana
         │
         │ LDAP Bind (389/636)
         ▼
-  Active Directory (RP-02)
+  OpenLDAP (RP-02)
   - Authentification utilisateurs
   - Groupes (Admin, Enseignants, Étudiants)
 ```
@@ -191,27 +189,27 @@ Grafana (VLAN 10)
 | Prometheus | — | 9090 | HTTP | Interne uniquement |
 | Loki | — | 3100 | HTTP | Interne uniquement |
 | MariaDB | — | 3306 | TCP | Interne uniquement |
-| Active Directory LDAP | 389/636 | 389/636 | LDAP/LDAPS | VLAN 10 → AD |
+| OpenLDAP LDAP | 389/636 | 389/636 | LDAP/LDAPS | VLAN 10 → AD |
 
 **Règle de sécurité :** Aucun service applicatif n'est directement accessible depuis les VLANs utilisateurs. **Tout passe par Traefik** (reverse proxy centralisé).
 
 ---
 
-## 4. Intégration Active Directory (LDAP)
+## 4. Intégration OpenLDAP (LDAP)
 
 ### 4.1 Configuration LDAP unifiée
 
-Tous les services utilisent la même configuration LDAP pour se connecter à l'Active Directory (RP-02) :
+Tous les services utilisent la même configuration LDAP pour se connecter à l'OpenLDAP (RP-02) :
 
 **Paramètres LDAP :**
-- **Serveur LDAP :** `ldap://ad.iris.a3n.fr:389` (ou LDAPS sur port 636)
-- **Base DN :** `DC=iris,DC=a3n,DC=fr`
-- **Bind DN :** `CN=service-ldap,OU=ServiceAccounts,DC=iris,DC=a3n,DC=fr`
-- **Filtre utilisateurs :** `(&(objectClass=user)(sAMAccountName=%u))`
+- **Serveur LDAP :** `ldap://openldap:389` (ou LDAPS sur port 636)
+- **Base DN :** `dc=mediaschool,dc=local`
+- **Bind DN :** `cn=admin,dc=mediaschool,dc=local`
+- **Filtre utilisateurs :** `(objectClass=inetOrgPerson)`
 - **Groupes AD utilisés :**
-  - `CN=Admins,OU=Groups,DC=iris,DC=a3n,DC=fr` → Administrateurs
-  - `CN=Enseignants,OU=Groups,DC=iris,DC=a3n,DC=fr` → Enseignants
-  - `CN=Etudiants,OU=Groups,DC=iris,DC=a3n,DC=fr` → Étudiants
+  - `CN=Admins,OU=Groups,dc=mediaschool,dc=local` → Administrateurs
+  - `CN=Enseignants,OU=Groups,dc=mediaschool,dc=local` → Enseignants
+  - `CN=Etudiants,OU=Groups,dc=mediaschool,dc=local` → Étudiants
 
 ### 4.2 Mapping groupes AD → Rôles applicatifs
 
@@ -346,7 +344,7 @@ iptables -A INPUT -s 10.10.99.0/24 -j ACCEPT
 
 ### 6.4 Authentification centralisée
 
-**Tous les services utilisent LDAP (Active Directory) :**
+**Tous les services utilisent LDAP (OpenLDAP) :**
 - Pas de comptes locaux (sauf compte admin de secours)
 - Mots de passe gérés centralement dans l'AD
 - Groupes AD mappés sur les rôles applicatifs
@@ -480,7 +478,7 @@ GLPI implémente un système de ticketing professionnel avec classification par 
 
 **Arborescence initiale :**
 - Infrastructure (RP-01)
-- Active Directory (RP-02)
+- OpenLDAP (RP-02)
 - Services applicatifs (RP-03)
 - Procédures
 - Guides utilisateurs
@@ -515,7 +513,7 @@ GLPI implémente un système de ticketing professionnel avec classification par 
 
 ### 8.4 Traefik (Reverse Proxy)
 
-**Rôle :** Point d'entrée unique pour tous les services en HTTP.
+**Rôle :** Point d'entrée unique pour tous les services en HTTPS.
 
 **Fonctionnalités :**
 - Routage automatique par nom de domaine
@@ -533,31 +531,31 @@ GLPI implémente un système de ticketing professionnel avec classification par 
 
 ---
 
-## 9. Plan de Tests (Préparation L9)
+## 9. Plan de Tests
 
-### 9.1 Tests accès HTTP
+### 9.1 Tests accès HTTPS
 
-- [ ] Accès http://glpi.iris.a3n.fr:8080 depuis VLAN 20
-- [ ] Accès http://cloud.iris.a3n.fr:8080 depuis VLAN 30
-- [ ] Accès http://wiki.iris.a3n.fr:8080 depuis VLAN 20
-- [ ] Accès http://grafana.iris.a3n.fr depuis VLAN 99
+- [ ] Accès https://glpi.iris.a3n.fr:4433 depuis VLAN 20
+- [ ] Accès https://cloud.iris.a3n.fr:4433 depuis VLAN 30
+- [ ] Accès https://wiki.iris.a3n.fr:4433 depuis VLAN 20
+- [ ] Accès https://grafana.iris.a3n.fr:4433 depuis VLAN 99
 - [ ] Vérification certificat SSL accepté par les postes (GPO AD)
-- [ ] Redirection HTTP → HTTP automatique
+- [ ] Redirection HTTP → HTTPS automatique
 
-### 9.2 Tests authentification AD
+### 9.2 Tests authentification LDAP
 
-- [ ] Login GLPI avec compte AD (groupe Étudiants) → rôle Utilisateur
-- [ ] Login GLPI avec compte AD (groupe Enseignants) → rôle Technicien
-- [ ] Login GLPI avec compte AD (groupe Admins) → rôle Super-Admin
-- [ ] Login Nextcloud avec compte AD → quota correct selon groupe
-- [ ] Login Outline avec compte AD → droits lecture/écriture selon groupe
-- [ ] Login Grafana avec compte AD → rôle Viewer/Éditeur/Admin selon groupe
+- [ ] Login GLPI avec compte LDAP (groupe Étudiants) → rôle Utilisateur
+- [ ] Login GLPI avec compte LDAP (groupe Enseignants) → rôle Technicien
+- [ ] Login GLPI avec compte LDAP (groupe Admins) → rôle Super-Admin
+- [ ] Login Nextcloud avec compte LDAP → quota correct selon groupe
+- [ ] Login Outline avec compte LDAP → droits lecture/écriture selon groupe
+- [ ] Login Grafana avec compte LDAP → rôle Viewer/Éditeur/Admin selon groupe
 
 ### 9.3 Tests restrictions réseau
 
-- [ ] Accès direct http://10.10.10.X:8080 depuis VLAN 20 → **bloqué**
-- [ ] Accès direct http://10.10.10.X:3000 depuis VLAN 30 → **bloqué**
-- [ ] Accès HTTP (443) depuis VLAN 20/30 → **autorisé**
+- [ ] Accès direct au port interne GLPI depuis VLAN 20 → **bloqué**
+- [ ] Accès direct au port interne Grafana depuis VLAN 30 → **bloqué**
+- [ ] Accès HTTPS (4433) depuis VLAN 20/30 → **autorisé**
 - [ ] Accès complet depuis VLAN 99 (admin) → **autorisé**
 
 ### 9.4 Tests workflow GLPI
@@ -586,16 +584,18 @@ Cette architecture répond aux exigences de l'appel d'offre RP-03 en plaçant **
 
 **Points clés de l'architecture :**
 1. **Infrastructure réseau sécurisée** (RP-01) avec segmentation VLAN
-2. **Authentification centralisée** via Active Directory (RP-02)
-3. **Point d'entrée unique** (Traefik) pour tous les services en HTTP
+2. **Authentification centralisée** via OpenLDAP (RP-02)
+3. **Point d'entrée unique** (Traefik) pour tous les services en HTTPS (port 4433)
 4. **Isolation des services** (conteneurs Docker sur VLAN Serveurs)
-5. **Workflow professionnel de ticketing** (GLPI N1/N2/N3)
+5. **Workflow professionnel de ticketing** aligné ITIL (GLPI N1/N2/N3)
 6. **Monitoring complet** (LGP Stack)
 
-**Prochaines étapes :** Documentation détaillée de chaque service (L2 à L9).
+**Prochaines étapes :** Documentation détaillée de chaque service (L2 à L8).
 
 ---
 
 **Auteur :** Louka Lavenir  
 **Date :** 20 mars 2026  
 **Version :** 1.0
+
+

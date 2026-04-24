@@ -21,11 +21,11 @@ Nextcloud est une plateforme open source de stockage et de collaboration de fich
 
 | Critère | Nextcloud | Google Drive | OneDrive | Dropbox |
 |:---|:---|:---|:---|:---|
-| **Souveraineté données** | ✅ Auto-hébergé | ❌ Cloud US | ❌ Cloud US | ❌ Cloud US |
+| **Souveraineté données** |  Auto-hébergé |  Cloud US |  Cloud US |  Cloud US |
 | **Coût** | 0 € (Open Source) | 6-18 €/utilisateur/mois | 5-12,5 €/utilisateur/mois | 10-20 €/utilisateur/mois |
-| **Fonctionnalités collaboratives** | ✅ Fichiers, Agenda, Contacts, Talk, Édition | ✅ Complètes | ✅ Complètes | ⚠️ Fichiers uniquement |
-| **Conformité RGPD** | ✅ Totale (données en France) | ⚠️ Cloud Act | ⚠️ Cloud Act | ⚠️ Cloud Act |
-| **Personnalisation** | ✅ Modulaire (extensions) | ❌ Figé | ❌ Figé | ❌ Figé |
+| **Fonctionnalités collaboratives** |  Fichiers, Agenda, Contacts, Talk, Édition |  Complètes |  Complètes |  Fichiers uniquement |
+| **Conformité RGPD** |  Totale (données en France) |  Cloud Act |  Cloud Act |  Cloud Act |
+| **Personnalisation** |  Modulaire (extensions) |  Figé |  Figé |  Figé |
 
 **Verdict :** Nextcloud garantit la souveraineté des données tout en offrant des fonctionnalités collaboratives complètes, sans coût récurrent.
 
@@ -79,7 +79,7 @@ services:
       NEXTCLOUD_ADMIN_PASSWORD: ${NC_ADMIN_PASSWORD}
       NEXTCLOUD_TRUSTED_DOMAINS: cloud.iris.a3n.fr
       OVERWRITEPROTOCOL: http
-      OVERWRITECLIURL: http://cloud.iris.a3n.fr
+      OVERWRITECLIURL: https://cloud.iris.a3n.fr:4433
     volumes:
       - ./volumes/nextcloud-data:/var/www/html
     depends_on:
@@ -111,7 +111,7 @@ NC_DB_PASSWORD=mot_de_passe_db_complexe_ici
 NC_ADMIN_PASSWORD=mot_de_passe_admin_complexe_ici
 ```
 
-**⚠️ Sécurité :** Ne jamais commiter ce fichier dans Git (ajouter `.env` au `.gitignore`). Permissions : `chmod 600 .env`.
+** Sécurité :** Ne jamais commiter ce fichier dans Git (ajouter `.env` au `.gitignore`). Permissions : `chmod 600 .env`.
 
 ### 3.4 Déploiement
 
@@ -133,10 +133,10 @@ docker compose up -d
 docker compose logs -f nextcloud
 ```
 
-**Accès :** http://cloud.iris.a3n.fr
+**Accès :** https://cloud.iris.a3n.fr:4433
       NEXTCLOUD_TRUSTED_DOMAINS: cloud.iris.a3n.fr
       OVERWRITEPROTOCOL: HTTP
-      OVERWRITECLIURL: http://cloud.iris.a3n.fr:8080
+      OVERWRITECLIURL: https://cloud.iris.a3n.fr:4433
     volumes:
       - ./volumes/nextcloud-data:/var/www/html
       - ./volumes/nextcloud-apps:/var/www/html/custom_apps
@@ -166,24 +166,24 @@ docker compose up -d
 docker compose logs -f nextcloud
 ```
 
-**Accès initial :** http://10.10.10.X:8080 (puis HTTP via Traefik)
+**Accès initial :** https://10.10.10.X:4433 (puis HTTP via Traefik)
 
 ---
 
-## 4. Configuration LDAP (Active Directory)
+## 4. Configuration LDAP (OpenLDAP)
 
-**Paramètres → LDAP / AD integration**
+**Paramètres → LDAP integration**
 
 **Configuration serveur :**
-- Serveur : `ldap://ad.iris.a3n.fr`
+- Serveur : `ldap://openldap`
 - Port : 389
-- Base DN : `DC=iris,DC=a3n,DC=fr`
-- Bind DN : `CN=service-ldap,OU=ServiceAccounts,DC=iris,DC=a3n,DC=fr`
+- Base DN : `dc=mediaschool,dc=local`
+- Bind DN : `cn=admin,dc=mediaschool,dc=local`
 - Mot de passe : `[mot_de_passe_service_ldap]`
 
 **Filtre utilisateurs :**
 ```ldap
-(&(objectClass=user)(objectCategory=person)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))
+(objectClass=inetOrgPerson)
 ```
 
 **Mapping attributs :**
@@ -208,11 +208,11 @@ docker compose logs -f nextcloud
 ## 6. Fonctionnalités Activées
 
 **Applications installées :**
-- ✅ Fichiers (core)
-- ✅ Calendrier
-- ✅ Contacts
-- ✅ Talk (visioconférence interne)
-- ✅ OnlyOffice / Collabora (édition collaborative documents)
+-  Fichiers (core)
+-  Calendrier
+-  Contacts
+-  Talk (visioconférence interne)
+-  OnlyOffice / Collabora (édition collaborative documents)
 
 **Partages configurés :**
 - Espace SISR (groupe Enseignants + Étudiants SISR)
@@ -235,3 +235,5 @@ docker compose logs -f nextcloud
 **Auteur :** Louka Lavenir  
 **Date :** 20 mars 2026  
 **Version :** 1.0
+
+
