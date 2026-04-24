@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Conception, sécurisation et mise en place d'outils open source
 **Projet :** Conception, sécurisation et mise en place d'outils open source  
 **Type :** Réalisation professionnelle  
