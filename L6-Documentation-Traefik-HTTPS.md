@@ -89,50 +89,72 @@ Le port 80 peut rester ouvert uniquement pour rediriger automatiquement les clie
 ### 4.1 Structure des fichiers
 
 ```
-/opt/iris-services/traefik/
+/home/julien/traefik/
 ├── docker-compose.yml
-├── traefik.yml             # Configuration statique
-├── dynamic/
-│   └── middlewares.yml     # Middlewares (headers sécurité)
-├── certs/
-│   ├── iris.a3n.fr.crt     # Certificat SSL auto-signé
-│   └── iris.a3n.fr.key     # Clé privée
-└── acme/
-    └── acme.json           # Let's Encrypt (si activé)
+├── .env
 ```
 
 ### 4.2 Fichier docker-compose.yml
 
 ```yaml
-version: '3.8'
+version: "3.7"
 
 services:
   traefik:
+    image: traefik:v3.6
     container_name: traefik
-    image: traefik:v2.11
+    hostname: traefik
     restart: always
     ports:
-      - "80:80"       # HTTP — redirection vers HTTPS
-      - "4433:443"    # HTTPS — point d'entrée utilisateurs
-      - "8080:8080"   # Dashboard Traefik (accès VLAN admin uniquement)
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./dynamic:/etc/traefik/dynamic:ro
-      # - ./certs:/certs:ro           # À activer avec HTTPS
-      # - ./acme:/acme                # À activer avec Let's Encrypt
+      - "80:80"
+      - "443:443"
+    env_file:
+      - .env
     networks:
-      - traefik-network
+      proxy:
+        ipv4_address: 172.100.10.10
+      #- metric
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./systeme/traefik_data/traefik.toml:/etc/traefik/traefik.toml
+      - ./systeme/traefik_data/acme.json:/acme.json
+      - ./systeme/traefik_data/configurations:/configurations
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashboard.rule=Host(`traefik.iris.a3n.fr`)"
-      - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.entrypoints=websecure"
-      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.traefik-secure.entrypoints=web"
+      - "traefik.http.routers.traefik-secure.rule=Host(`traefik.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+      - "traefik.http.routers.traefik-secure.middlewares=user-auth@file"
+
+  portainer:
+    image: portainer/portainer-ce:sts
+    container_name: portainer
+    hostname: portainer
+    networks:
+      proxy:
+          ipv4_address: 172.100.10.20
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./systeme/portainer_data:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      # Portainer en HTTP sur portainer.iris.a3n.fr:8080
+      - "traefik.http.routers.portainer.entrypoints=web"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.portainer.service=portainer"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
 
 networks:
-  traefik-network:
-    external: true
+  proxy:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.100.10.0/24"% 
 ```
 
 **Note :** Le service utilisateur est publié en HTTPS via le mapping `4433:443`.
@@ -200,71 +222,16 @@ accessLog:
 - **Redirection HTTP → HTTPS** active.
 - **Section TLS** active.
 
-### 4.4 Fichier dynamic/middlewares.yml (Headers Sécurité)
+## 5. Déploiement Traefik
 
-```yaml
-http:
-  middlewares:
-    security-headers:
-      headers:
-        sslRedirect: true
-        forceSTSHeader: true
-        stsSeconds: 31536000
-        stsIncludeSubdomains: true
-        stsPreload: true
-        contentTypeNosniff: true
-        frameDeny: true
-        browserXssFilter: true
-        referrerPolicy: "same-origin"
-        customFrameOptionsValue: "SAMEORIGIN"
-```
-
----
-
-## 5. Génération Certificat SSL Auto-Signé
-
-### 5.1 Créer le certificat wildcard
-
-```bash
-# Se placer dans le dossier certs
-cd /opt/iris-services/traefik/certs/
-
-# Générer clé privée + certificat (valide 1 an)
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout iris.a3n.fr.key \
-  -out iris.a3n.fr.crt \
-  -subj "/C=FR/ST=PACA/L=Nice/O=IRIS/CN=*.iris.a3n.fr" \
-  -addext "subjectAltName=DNS:*.iris.a3n.fr,DNS:iris.a3n.fr"
-
-# Vérifier le certificat
-openssl x509 -in iris.a3n.fr.crt -text -noout
-```
-
-### 5.2 Distribution via GPO
-
-**Pour que les postes clients acceptent le certificat auto-signé :**
-
-1. **Copier le certificat** `iris.a3n.fr.crt` sur le serveur de gestion
-2. **Créer une GPO :**
-   - **Computer Configuration → Policies → Windows Settings → Security Settings → Public Key Policies → Trusted Root Certification Authorities**
-   - **Import** → Sélectionner `iris.a3n.fr.crt`
-3. **Appliquer la GPO** à l'OU contenant les postes clients
-4. **Forcer mise à jour GPO** sur les postes : `gpupdate /force`
-
-**Résultat :** Les navigateurs des postes acceptent le certificat sans avertissement.
-
----
-
-## 6. Déploiement Traefik
-
-### 6.1 Créer le réseau Docker
+### 5.1 Créer le réseau Docker
 
 ```bash
 # Créer le réseau externe partagé par tous les services
 docker network create traefik-network
 ```
 
-### 6.2 Démarrer Traefik
+### 5.2 Démarrer Traefik
 
 ```bash
 cd /opt/iris-services/traefik/
@@ -274,9 +241,9 @@ docker compose logs -f traefik
 
 ---
 
-## 7. Intégration d'un Service dans Traefik
+## 6. Intégration d'un Service dans Traefik
 
-### 7.1 Exemple : GLPI
+### 6.1 Exemple : GLPI
 
 **Dans le `docker-compose.yml` de GLPI, ajouter les labels :**
 
@@ -317,7 +284,7 @@ docker compose restart glpi
 
 ---
 
-## 8. Redirection HTTP → HTTPS
+## 7. Redirection HTTP → HTTPS
 
 **Configuré automatiquement dans `traefik.yml` :**
 
