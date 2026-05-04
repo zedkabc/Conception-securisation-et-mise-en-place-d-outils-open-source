@@ -36,79 +36,138 @@ Nextcloud est une plateforme open source de stockage et de collaboration de fich
 ### 3.1 Structure des fichiers
 
 ```
-/opt/iris-services/nextcloud/
+/home/iris/sisr/nextcloud/
 ├── docker-compose.yml
-├── volumes/
-│   ├── nextcloud-data/        # Fichiers utilisateurs
-│   ├── nextcloud-apps/        # Applications installées
-│   ├── nextcloud-config/      # Configuration Nextcloud
-│   └── postgres-data/         # Base de données PostgreSQL
-└── backup/
 ```
 
 ### 3.2 Fichier docker-compose.yml
 
 ```yaml
-version: '3.8'
-
 services:
-  postgres-nextcloud:
-    container_name: postgres-nextcloud
-    image: postgres:15
+  db:
+    image: mariadb:latest
+    container_name: nextcloud-db
+    hostname: nextcloud-db
     restart: always
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
     environment:
-      POSTGRES_DB: nextcloud_db
-      POSTGRES_USER: nextcloud_user
-      POSTGRES_PASSWORD: ${NC_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
-      - ./volumes/postgres-data:/var/lib/postgresql/data
+      - db_data:/var/lib/mysql
     networks:
-      - nextcloud-network
+      - nextcloud_network
 
-  nextcloud:
-    container_name: nextcloud
-    image: nextcloud:28
+  app:
+    image: nextcloud:latest
+    container_name: nextcloud-app
     restart: always
-    # PAS de section ports: — Traefik gère l'accès
     environment:
-      POSTGRES_HOST: postgres-nextcloud
-      POSTGRES_DB: nextcloud_db
-      POSTGRES_USER: nextcloud_user
-      POSTGRES_PASSWORD: ${NC_DB_PASSWORD}
-      NEXTCLOUD_ADMIN_USER: admin
-      NEXTCLOUD_ADMIN_PASSWORD: ${NC_ADMIN_PASSWORD}
-      NEXTCLOUD_TRUSTED_DOMAINS: cloud.iris.a3n.fr
-      OVERWRITEPROTOCOL: http
-      OVERWRITECLIURL: https://cloud.iris.a3n.fr:4433
+      MYSQL_HOST: nextcloud-db
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
-      - ./volumes/nextcloud-data:/var/www/html
+      - nextcloud_data:/var/www/html
     depends_on:
-      - postgres-nextcloud
+      - db
     networks:
-      - nextcloud-network
-      - traefik-network
+      - admin_proxy
+      - nextcloud_network
+    expose:
+      - "80"
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.nextcloud.rule=Host(`cloud.iris.a3n.fr`)"
-      - "traefik.http.routers.nextcloud.entrypoints=web"
-      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
-      - "traefik.docker.network=traefik-network"
+      traefik.enable: "true"
+      traefik.docker.network: admin_proxy
+
+      traefik.http.middlewares.NEXTCLOUD-https-redirect.redirectregex.regex: "^http://cloud\\.${DOMAIN_NAME}(.*)"
+      traefik.http.middlewares.NEXTCLOUD-https-redirect.redirectregex.replacement: "https://cloud.${DOMAIN_NAME}:4433$$1"
+      traefik.http.middlewares.NEXTCLOUD-https-redirect.redirectregex.permanent: "true"
+
+      traefik.http.routers.NEXTCLOUD-http.entrypoints: web
+      traefik.http.routers.NEXTCLOUD-http.rule: "Host(`cloud.${DOMAIN_NAME}`)"
+      traefik.http.routers.NEXTCLOUD-http.middlewares: NEXTCLOUD-https-redirect
+      traefik.http.routers.NEXTCLOUD-http.service: NEXTCLOUD-svc
+
+      traefik.http.routers.NEXTCLOUD.entrypoints: websecure
+      traefik.http.routers.NEXTCLOUD.rule: "Host(`cloud.${DOMAIN_NAME}`)"
+      traefik.http.routers.NEXTCLOUD.tls: "true"
+      traefik.http.routers.NEXTCLOUD.tls.certresolver: letsencrypt
+      traefik.http.routers.NEXTCLOUD.service: NEXTCLOUD-svc
+      traefik.http.routers.NEXTCLOUD.middlewares: NEXTCLOUD-security-headers
+
+      traefik.http.services.NEXTCLOUD-svc.loadbalancer.server.port: "80"
+
+      traefik.http.middlewares.NEXTCLOUD-security-headers.headers.stsSeconds: "31536000"
+      traefik.http.middlewares.NEXTCLOUD-security-headers.headers.stsIncludeSubdomains: "true"
+      traefik.http.middlewares.NEXTCLOUD-security-headers.headers.stsPreload: "true"
+      traefik.http.middlewares.NEXTCLOUD-security-headers.headers.forceSTSHeader: "true"
+      traefik.http.middlewares.NEXTCLOUD-security-headers.headers.contentTypeNosniff: "true"
+      traefik.http.middlewares.NEXTCLOUD-security-headers.headers.browserXssFilter: "true"
+
+  collabora:
+    image: collabora/code:latest
+    container_name: nextcloud-collabora
+    restart: always
+    environment:
+      aliasgroup1: "https://cloud.${DOMAIN_NAME}:4433"
+      extra_params: "--o:ssl.termination=true --o:ssl.enable=false"
+      dictionaries: "fr_FR en_US"
+      server_name: "office.${DOMAIN_NAME}:4433"
+    cap_add:
+      - MKNOD
+    depends_on:
+      - app
+    networks:
+      - admin_proxy
+      - nextcloud_network
+    expose:
+      - "9980"
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: admin_proxy
+
+      traefik.http.middlewares.COLLABORA-https-redirect.redirectregex.regex: "^http://office\\.${DOMAIN_NAME}(.*)"
+      traefik.http.middlewares.COLLABORA-https-redirect.redirectregex.replacement: "https://office.${DOMAIN_NAME}:4433$$1"
+      traefik.http.middlewares.COLLABORA-https-redirect.redirectregex.permanent: "true"
+
+      traefik.http.routers.COLLABORA-http.entrypoints: web
+      traefik.http.routers.COLLABORA-http.rule: "Host(`office.${DOMAIN_NAME}`)"
+      traefik.http.routers.COLLABORA-http.middlewares: COLLABORA-https-redirect
+      traefik.http.routers.COLLABORA-http.service: COLLABORA-svc
+
+      traefik.http.routers.COLLABORA.entrypoints: websecure
+      traefik.http.routers.COLLABORA.rule: "Host(`office.${DOMAIN_NAME}`)"
+      traefik.http.routers.COLLABORA.tls: "true"
+      traefik.http.routers.COLLABORA.tls.certresolver: letsencrypt
+      traefik.http.routers.COLLABORA.service: COLLABORA-svc
+
+      traefik.http.services.COLLABORA-svc.loadbalancer.server.port: "9980"
+
+volumes:
+  db_data:
+  nextcloud_data:
 
 networks:
-  nextcloud-network:
-    driver: bridge
-  traefik-network:
+  admin_proxy:
     external: true
+  nextcloud_network:
+    driver: bridge
 ```
 
 ### 3.3 Fichier .env (Sécurité)
 
-**Créer le fichier `/opt/iris-services/nextcloud/.env` :**
+**Créer le fichier ` /home/iris/sisr/nextcloud/.env` :**
 
 ```env
 # Mots de passe Nextcloud
-NC_DB_PASSWORD=mot_de_passe_db_complexe_ici
-NC_ADMIN_PASSWORD=mot_de_passe_admin_complexe_ici
+MYSQL_ROOT_PASSWORD=""
+MYSQL_DATABASE=""
+MYSQL_USER="
+MYSQL_PASSWORD=""
+DOMAIN_NAME=iris.a3n.fr
 ```
 
 ** Sécurité :** Ne jamais commiter ce fichier dans Git (ajouter `.env` au `.gitignore`). Permissions : `chmod 600 .env`.
@@ -120,7 +179,7 @@ NC_ADMIN_PASSWORD=mot_de_passe_admin_complexe_ici
 docker network create traefik-network
 
 # Créer les dossiers
-cd /opt/iris-services/nextcloud/
+cd /home/iris/sisr/nextcloud/
 mkdir -p volumes/nextcloud-data volumes/postgres-data backup
 
 # Créer le fichier .env
