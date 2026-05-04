@@ -1,5 +1,5 @@
 # L1 — Schéma d'Architecture des Services Open Source
-**Projet :** RP-03 — Déploiement d'outils open source pour CFA IRIS Nice  
+**Projet :** RP-03 — Déploiement d'outils open source pour IRIS  Mediaschool Nice  
 **Focus Principal :** GLPI (Helpdesk & Ticketing)  
 **Services Secondaires :** Nextcloud, Outline, LGP (Monitoring), Traefik  
 **Auteur :** Louka Lavenir  
