@@ -277,82 +277,118 @@ scrape_configs:
       - targets: ["blackbox:9115"]
 ```
 
-### 4.2 Fichier alerts.yml
+### 4.2 Fichier node_alerts.yml
 
 ```yaml
 groups:
-  - name: infrastructure_alerts
-    interval: 30s
+
+  # ── Disponibilite services (hors snmp) ────────────────────────────────────
+  - name: services
     rules:
-      # Alerte CPU > 90%
-      - alert: HighCPUUsage
-        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "CPU élevé sur {{ $labels.instance }}"
-          description: "CPU à {{ $value }}% sur {{ $labels.instance }}"
-
-      # Alerte RAM > 90%
-      - alert: HighMemoryUsage
-        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "RAM élevée sur {{ $labels.instance }}"
-          description: "RAM utilisée à {{ $value }}% sur {{ $labels.instance }}"
-
-      # Alerte Disque > 85%
-      - alert: HighDiskUsage
-        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 15
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Disque plein sur {{ $labels.instance }}"
-          description: "Disque {{ $labels.mountpoint }} à {{ $value }}%"
-
-      # Alerte Service Down
       - alert: ServiceDown
-        expr: up == 0
+        expr: up{job!~"snmp.*"} == 0
         for: 2m
         labels:
           severity: critical
         annotations:
-          summary: "Service {{ $labels.job }} down"
-          description: "Le service {{ $labels.job }} ne répond pas"
+          summary: "Service {{ $labels.job }} inaccessible"
+          description: "L'instance {{ $labels.instance }} est DOWN depuis plus de 2 minutes."
 
-      # Alerte HTTP/HTTP Service Down
-      - alert: HTTPServiceDown
-        expr: probe_success == 0
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Service web {{ $labels.instance }} inaccessible"
-          description: "{{ $labels.instance }} ne répond pas (HTTP)"
-
-      # Alerte Conteneur Docker redémarrant en boucle
-      - alert: ContainerRestarting
-        expr: increase(container_restart_count[1h]) > 3
+  # ── CPU ───────────────────────────────────────────────────────────────────
+  - name: cpu
+    rules:
+      - alert: CPUHighUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Conteneur {{ $labels.name }} redémarre en boucle"
-          description: "Le conteneur {{ $labels.name }} a redémarré {{ $value }} fois en 1h"
+          summary: "CPU eleve sur {{ $labels.instance }}"
+          description: "Utilisation CPU > 85% depuis 5 min (valeur: {{ $value | printf \"%.1f\" }}%)"
 
-      # Alerte Certificat SSL expirant (à activer quand HTTP déployé)
-      # - alert: SSLCertExpiring
-      #   expr: probe_ssl_earliest_cert_expiry - time() < 604800
-      #   for: 1h
-      #   labels:
-      #     severity: warning
-      #   annotations:
-      #     summary: "Certificat SSL {{ $labels.instance }} expire bientôt"
-      #     description: "Le certificat expire dans moins de 7 jours"
+      - alert: CPUCritical
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CPU CRITIQUE sur {{ $labels.instance }}"
+          description: "Utilisation CPU > 95% depuis 2 min (valeur: {{ $value | printf \"%.1f\" }}%)"
+
+  # ── RAM ───────────────────────────────────────────────────────────────────
+  - name: memory
+    rules:
+      - alert: MemoryHighUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RAM elevee sur {{ $labels.instance }}"
+          description: "Utilisation RAM > 85% (valeur: {{ $value | printf \"%.1f\" }}%)"
+
+      - alert: MemoryCritical
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RAM CRITIQUE sur {{ $labels.instance }}"
+          description: "Utilisation RAM > 95% (valeur: {{ $value | printf \"%.1f\" }}%)"
+
+  # ── Disque ────────────────────────────────────────────────────────────────
+  - name: disk
+    rules:
+      - alert: DiskSpaceWarning
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"})) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disque plein a {{ $value | printf \"%.1f\" }}% sur {{ $labels.instance }}"
+          description: "Partition {{ $labels.mountpoint }} utilisee a {{ $value | printf \"%.1f\" }}%"
+
+      - alert: DiskSpaceCritical
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"})) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DISQUE PRESQUE PLEIN sur {{ $labels.instance }}"
+          description: "Partition {{ $labels.mountpoint }} utilisee a {{ $value | printf \"%.1f\" }}%"
+
+  # ── Docker conteneurs (hors cadvisor lui-meme) ────────────────────────────
+  - name: docker
+    rules:
+      - alert: ContainerDown
+        expr: absent_over_time(container_memory_usage_bytes{name!="",name!~"POD|k8s_.*"}[5m])
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Conteneur Docker arrete : {{ $labels.name }}"
+          description: "Le conteneur {{ $labels.name }} n'est plus actif depuis 5 minutes."
+
+      - alert: ContainerCPUHigh
+        expr: rate(container_cpu_usage_seconds_total{name!="",name!="cadvisor",name!~"POD|k8s_.*"}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU eleve conteneur {{ $labels.name }}"
+          description: "Le conteneur {{ $labels.name }} consomme {{ $value | printf \"%.1f\" }}% CPU depuis 5 min."
+
+  # ── HTTP / Blackbox (conteneurs internes uniquement) ──────────────────────
+  - name: http
+    rules:
+      - alert: HTTPEndpointDown
+        expr: probe_success{job="blackbox"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Endpoint HTTP inaccessible : {{ $labels.instance }}"
+          description: "La sonde HTTP sur {{ $labels.instance }} echoue depuis 5 minutes."
 ```
 
 ** Note sur les alertes :**
