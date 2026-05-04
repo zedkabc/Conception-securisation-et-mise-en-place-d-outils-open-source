@@ -1,5 +1,5 @@
 # Dossier de Réalisation Professionnelle GLPI
-**Projet :** Déploiement d'outils open source pour IRIS Nice  
+**Projet :** Déploiement d'outils open source pour IRIS Mediaschool Nice  
 **Auteur :** Louka Lavenir  
 **Période de réalisation :** 24/11/2025 au 28/11/2025  
 **Lieu :** Mediaschool — IRIS Nice  
@@ -238,7 +238,7 @@ Stratégie recommandée :
 - Documentation GLPI Serveur (référence projet)  
 - Fiche descriptive RP GLPI (annexe E5)  
 - Documentation officielle GLPI  
-- Livrables techniques RP03 (L1 à L9)
+- Livrables techniques RP03 (L1 à L8)
 
 ---
 
