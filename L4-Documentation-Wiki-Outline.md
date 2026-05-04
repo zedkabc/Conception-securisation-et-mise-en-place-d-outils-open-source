@@ -158,8 +158,8 @@ PGSSLMODE=disable
 DEFAULT_LANGUAGE=fr_FR
 
 # ── Secrets ───────────────────────────────────────────────────────
-SECRET_KEY=921499f8fd5a63202582d8e3ed384c4adc04e50e4a46c0729397b402a2a170f0
-UTILS_SECRET=f55ed1b976cdf87ba868154290ffc24a9dd5e05093b5efc1bda6aa7a0f0282a2
+SECRET_KEY=""
+UTILS_SECRET=""
 
 # ── Redis ─────────────────────────────────────────────────────────
 REDIS_URL=redis://:e40e937380b68dea862b1526635cc17309572c0e2cb9f13b@redis:6379
