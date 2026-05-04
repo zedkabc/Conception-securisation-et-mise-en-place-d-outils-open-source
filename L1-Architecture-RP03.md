@@ -186,7 +186,4 @@ Tous les services utilisent la même configuration LDAP pour se connecter à l'O
 ---
 
 **Auteur :** Louka Lavenir  
-**Date :** 20 mars 2026  
-**Version :** 1.0
-
-
+**Date :** 20 mars 2026
