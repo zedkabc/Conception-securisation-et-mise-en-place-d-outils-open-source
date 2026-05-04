@@ -27,13 +27,6 @@ Outline est un wiki moderne et collaboratif, alternative open source à Notion o
 | **Authentification LDAP** |  Non (OIDC uniquement) |  Non |  Oui |  Oui |  Oui |  Oui |
 | **Coût à l'échelle** |  Indépendant |  Lié au nombre d'utilisateurs |  Lié au nombre d'utilisateurs |  Indépendant |  Indépendant |  Indépendant |
 
-** Point d'attention :** Outline ne supporte pas nativement l'authentification LDAP. Il utilise **OIDC (OpenID Connect)** ou **SAML**. Pour intégrer Outline avec l'OpenLDAP de l'école, deux options sont possibles :
-
-1. **Utiliser un bridge OIDC** (Authelia ou Dex) qui se connecte à l'AD en LDAP et expose une interface OIDC pour Outline
-2. **Remplacer Outline par Dokuwiki ou BookStack** qui supportent LDAP nativement
-
-**Option retenue pour la documentation :** Déploiement avec bridge OIDC (Authelia recommandé).
-
 ---
 
 ## 3. Installation Outline avec Docker Compose
