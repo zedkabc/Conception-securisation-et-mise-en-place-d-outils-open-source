@@ -1,7 +1,7 @@
 # L5 — Documentation Stack LGP (Loki-Grafana-Prometheus) — Service Secondaire
-**Projet :** RP-03 — Déploiement d'outils open source pour CFA IRIS Nice  
+**Projet :** RP-03 — Déploiement d'outils open source pour IRIS Mediaschool Nice  
 **Service :** LGP Stack (Monitoring infrastructure)  
-**Statut :** Service secondaire (travail de Vincent)  
+**Statut :** Service secondaire (travail de Vincent ANDREO)  
 **Auteur :** Vincent (repris par Louka Lavenir pour documentation)  
 **Date :** 20 mars 2026
 
