@@ -1,5 +1,5 @@
 # L7 — Guide Utilisateur GLPI
-**Projet :** RP-03 — Déploiement d'outils open source pour CFA IRIS Nice  
+**Projet :** RP-03 — Déploiement d'outils open source pour IRIS Mediaschool Nice  
 **Service :** GLPI (Helpdesk & Ticketing)  
 **Public :** Étudiants et Enseignants de l'école IRIS Nice  
 **Auteur :** Louka Lavenir  
@@ -279,13 +279,9 @@ Votre ticket est automatiquement routé vers le bon niveau de support selon la c
 
 ---
 
-** Bon usage de GLPI et bon courage dans vos études !**
+** Bon usage de GLPI !**
 
 ---
 
 **Auteur :** Louka Lavenir  
-**Support IRIS Nice**  
-**Date :** 20 mars 2026  
-**Version :** 1.0
-
-
+**Date :** 20 mars 2026
