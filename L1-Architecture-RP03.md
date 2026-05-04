@@ -55,7 +55,7 @@ L'architecture applicative repose sur une **approche conteneurisée (Docker)** a
 **Service Principal :** GLPI (Helpdesk & Ticketing)  
 **Services Secondaires :** Nextcloud, Outline, LGP (Monitoring), Traefik
 
-**Authentification unifiée :** Tous les services s'authentifient via **LDAP** sur l'OpenLDAP existant (RP-02).
+**Authentification unifiée :** Tous les services s'authentifient via **LDAP** sur l'OpenLDAP existant.
 
 ### 2.2 URLs d'accès (via Traefik)
 
@@ -66,84 +66,15 @@ L'architecture applicative repose sur une **approche conteneurisée (Docker)** a
 | **Outline (Wiki)** | https://wiki.iris.a3n.fr:4433 | OIDC via bridge LDAP | 3000 |
 | **Grafana (Monitoring)** | https://grafana.iris.a3n.fr:4433 | LDAP | 3000 |
 
-**Note :** Outline ne supporte pas l'authentification LDAP nativement. Un bridge OIDC (Authelia ou Dex) est nécessaire pour connecter Outline à l'OpenLDAP, ou remplacer Outline par Dokuwiki/BookStack qui supportent LDAP nativement.
-
 **Certificat HTTPS :** Auto-signé avec CN=*.iris.a3n.fr, distribué via GPO aux postes clients.
 
 ---
 
-## 3. Flux Réseau et Ports
+## 3. Intégration OpenLDAP (LDAP)
 
-### 3.1 Flux utilisateur → Services
+### 3.1 Configuration LDAP unifiée
 
-```
-Utilisateur (VLAN 20/30)
-        │
-        │ HTTP (443)
-        ▼
-  Traefik (VLAN 10)
-        │
-        ├─→ GLPI:8080
-        ├─→ Nextcloud:8080
-        ├─→ Outline:8080
-        └─→ Grafana:3000
-```
-
-### 3.2 Flux applicatifs → OpenLDAP
-
-```
-GLPI / Nextcloud / Outline / Grafana
-        │
-        │ LDAP Bind (389/636)
-        ▼
-  OpenLDAP (RP-02)
-  - Authentification utilisateurs
-  - Groupes (Admin, Enseignants, Étudiants)
-```
-
-### 3.3 Flux monitoring
-
-```
-Prometheus (VLAN 10)
-        │
-        ├─→ Exporters (CPU, RAM, Disk)
-        ├─→ SNMP (Switches, Routeurs Cisco)
-        └─→ Blackbox Exporter (tests HTTP/HTTP)
-        
-Loki (VLAN 10)
-        │
-        └─→ Promtail (collecte logs services)
-        
-Grafana (VLAN 10)
-        │
-        ├─→ Prometheus (métriques)
-        └─→ Loki (logs)
-```
-
-### 3.4 Tableau récapitulatif des ports
-
-| Service | Port Externe | Port Interne | Protocole | Accès |
-|:---|:---|:---|:---|:---|
-| Traefik Dashboard | 8080 | 8080 | HTTP | Admin uniquement (VLAN 99) |
-| Traefik HTTP | 443 | 443 | HTTP | VLAN 20, 30 (utilisateurs) |
-| GLPI | — | 8080 | HTTP | Via Traefik uniquement |
-| Nextcloud | — | 8080 | HTTP | Via Traefik uniquement |
-| Outline | — | 8080 | HTTP | Via Traefik uniquement |
-| Grafana | — | 3000 | HTTP | Via Traefik uniquement |
-| Prometheus | — | 9090 | HTTP | Interne uniquement |
-| Loki | — | 3100 | HTTP | Interne uniquement |
-| MariaDB | — | 3306 | TCP | Interne uniquement |
-| OpenLDAP LDAP | 389/636 | 389/636 | LDAP/LDAPS | VLAN 10 → AD |
-
-**Règle de sécurité :** Aucun service applicatif n'est directement accessible depuis les VLANs utilisateurs. **Tout passe par Traefik** (reverse proxy centralisé).
-
----
-
-## 4. Intégration OpenLDAP (LDAP)
-
-### 4.1 Configuration LDAP unifiée
-
-Tous les services utilisent la même configuration LDAP pour se connecter à l'OpenLDAP (RP-02) :
+Tous les services utilisent la même configuration LDAP pour se connecter à l'OpenLDAP :
 
 **Paramètres LDAP :**
 - **Serveur LDAP :** `ldap://openldap:389`
@@ -155,7 +86,7 @@ Tous les services utilisent la même configuration LDAP pour se connecter à l'O
   - `CN=Enseignants,OU=Groups,dc=mediaschool,dc=local` → Enseignants
   - `CN=Etudiants,OU=Groups,dc=mediaschool,dc=local` → Étudiants
 
-### 4.2 Mapping groupes AD → Rôles applicatifs
+### 3.2 Mapping groupes AD → Rôles applicatifs
 
 | Service | Groupe AD | Rôle applicatif |
 |:---|:---|:---|
@@ -176,133 +107,9 @@ Tous les services utilisent la même configuration LDAP pour se connecter à l'O
 
 ---
 
-## 5. Déploiement Docker
+## 4. Services Secondaires
 
-### 5.1 Stack Docker Compose
-
-Tous les services sont déployés via **Docker Compose** pour garantir :
-- **Portabilité** (réplicable sur n'importe quel serveur Linux)
-- **Isolation** (chaque service dans son conteneur)
-- **Simplicité de maintenance** (un seul `docker compose up -d` pour tout démarrer)
-
-**Structure des fichiers :**
-```
-/opt/iris-services/
-├── docker-compose.yml          # Orchestration globale
-├── traefik/
-│   ├── traefik.yml             # Config Traefik
-│   └── certs/                  # Certificats SSL
-├── glpi/
-│   └── config/                 # Config GLPI
-├── nextcloud/
-│   └── config/                 # Config Nextcloud
-├── outline/
-│   └── config/                 # Config Outline
-├── monitoring/
-│   ├── prometheus.yml
-│   ├── loki-config.yml
-│   └── grafana/
-└── volumes/                    # Données persistantes
-    ├── glpi-data/
-    ├── nextcloud-data/
-    ├── outline-data/
-    ├── grafana-data/
-    └── mariadb-data/
-```
-
-### 5.2 Volumes persistants
-
-**Données critiques stockées dans des volumes Docker persistants :**
-- `/opt/iris-services/volumes/glpi-data/` → Pièces jointes tickets, base de connaissances
-- `/opt/iris-services/volumes/nextcloud-data/` → Fichiers utilisateurs
-- `/opt/iris-services/volumes/outline-data/` → Pages wiki
-- `/opt/iris-services/volumes/mariadb-data/` → Bases de données
-
-**Sauvegarde :** Ces volumes sont sauvegardés quotidiennement (hors scope RP-03, mais recommandé).
-
----
-
-## 6. Sécurité
-
-### 6.1 Certificats HTTP
-
-**Traefik génère et gère les certificats SSL :**
-- **Type :** Certificat auto-signé wildcard `*.iris.a3n.fr`
-- **Distribution :** Certificat CA distribué via GPO AD aux postes clients (RP-02)
-- **Validité :** 1 an (renouvellement manuel)
-- **Protocoles :** TLS 1.2 minimum, TLS 1.3 recommandé
-
-**Configuration Traefik :**
-```yaml
-entryPoints:
-  web:
-    address: ":80"
-    http:
-      tls:
-        options: default
-        certResolver: selfSigned
-```
-
-### 6.2 Headers de sécurité HTTP
-
-Traefik injecte automatiquement des headers de sécurité sur toutes les réponses :
-
-```yaml
-middlewares:
-  security-headers:
-    headers:
-      sslRedirect: true
-      forceSTSHeader: true
-      stsSeconds: 31536000
-      stsIncludeSubdomains: true
-      contentTypeNosniff: true
-      frameDeny: true
-      browserXssFilter: true
-      referrerPolicy: "same-origin"
-```
-
-**Effet :** Protection contre XSS, clickjacking, MIME sniffing, redirection HTTP forcée vers HTTP.
-
-### 6.3 Restrictions réseau
-
-**ACLs configurées sur le routeur Cisco 1941 :**
-- VLAN 20/30 (utilisateurs) → accès HTTP (443) vers VLAN 10 autorisé
-- VLAN 20/30 → accès direct aux services internes (8080, 3000, 9090) **bloqué**
-- VLAN 99 (admin) → accès complet à tous les ports
-
-**Règle firewall sur le serveur Linux (iptables) :**
-```bash
-# Autoriser HTTP depuis utilisateurs
-iptables -A INPUT -p tcp --dport 80 -s 10.10.20.0/24 -j ACCEPT
-iptables -A INPUT -p tcp --dport 80 -s 10.10.30.0/24 -j ACCEPT
-
-# Bloquer accès direct aux services internes
-iptables -A INPUT -p tcp --dport 8080 -s 10.10.20.0/24 -j DROP
-iptables -A INPUT -p tcp --dport 8080 -s 10.10.30.0/24 -j DROP
-iptables -A INPUT -p tcp --dport 3000 -s 10.10.20.0/24 -j DROP
-iptables -A INPUT -p tcp --dport 3000 -s 10.10.30.0/24 -j DROP
-
-# Admin VLAN → accès complet
-iptables -A INPUT -s 10.10.99.0/24 -j ACCEPT
-```
-
-### 6.4 Authentification centralisée
-
-**Tous les services utilisent LDAP (OpenLDAP) :**
-- Pas de comptes locaux (sauf compte admin de secours)
-- Mots de passe gérés centralement dans l'AD
-- Groupes AD mappés sur les rôles applicatifs
-
-**Avantage sécurité :**
-- Désactivation d'un compte AD → accès révoqué sur tous les services
-- Politique de mot de passe AD appliquée partout
-- Logs d'authentification centralisés
-
----
-
-## 7. Services Secondaires
-
-### 7.1 Nextcloud (Cloud interne)
+### 4.1 Nextcloud (Cloud interne)
 
 **Rôle :** Stockage et collaboration de fichiers pour enseignants et étudiants.
 
@@ -319,7 +126,7 @@ iptables -A INPUT -s 10.10.99.0/24 -j ACCEPT
 - Enseignants : 50 Go
 - Admin : Illimité
 
-### 7.2 Outline (Wiki interne)
+### 4.2 Outline (Wiki interne)
 
 **Rôle :** Documentation technique centralisée.
 
@@ -336,7 +143,7 @@ iptables -A INPUT -s 10.10.99.0/24 -j ACCEPT
 - Enseignants → Lecture/Écriture
 - Étudiants → Lecture seule
 
-### 7.3 LGP Stack (Monitoring)
+### 4.3 LGP Stack (Monitoring)
 
 **Rôle :** Supervision de l'infrastructure et des services.
 
@@ -358,7 +165,7 @@ iptables -A INPUT -s 10.10.99.0/24 -j ACCEPT
 - Performances réseau (SNMP Cisco)
 - Logs applicatifs (Loki)
 
-### 7.4 Traefik (Reverse Proxy)
+### 4.4 Traefik (Reverse Proxy)
 
 **Rôle :** Point d'entrée unique pour tous les services en HTTPS.
 
@@ -375,69 +182,6 @@ iptables -A INPUT -s 10.10.99.0/24 -j ACCEPT
 - Support TCP/UDP natif
 - Dashboard intégré
 - Moins d'erreurs humaines (pas de config manuelle par service)
-
----
-
-## 8. Plan de Tests
-
-### 8.1 Tests accès HTTPS
-
-- [ ] Accès https://glpi.iris.a3n.fr:4433 depuis VLAN 20
-- [ ] Accès https://cloud.iris.a3n.fr:4433 depuis VLAN 30
-- [ ] Accès https://wiki.iris.a3n.fr:4433 depuis VLAN 20
-- [ ] Accès https://grafana.iris.a3n.fr:4433 depuis VLAN 99
-- [ ] Vérification certificat SSL accepté par les postes (GPO AD)
-- [ ] Redirection HTTP → HTTPS automatique
-
-### 8.2 Tests authentification LDAP
-
-- [ ] Login GLPI avec compte LDAP (groupe Étudiants) → rôle Utilisateur
-- [ ] Login GLPI avec compte LDAP (groupe Enseignants) → rôle Technicien
-- [ ] Login GLPI avec compte LDAP (groupe Admins) → rôle Super-Admin
-- [ ] Login Nextcloud avec compte LDAP → quota correct selon groupe
-- [ ] Login Outline avec compte LDAP → droits lecture/écriture selon groupe
-- [ ] Login Grafana avec compte LDAP → rôle Viewer/Éditeur/Admin selon groupe
-
-### 8.3 Tests restrictions réseau
-
-- [ ] Accès direct au port interne GLPI depuis VLAN 20 → **bloqué**
-- [ ] Accès direct au port interne Grafana depuis VLAN 30 → **bloqué**
-- [ ] Accès HTTPS (4433) depuis VLAN 20/30 → **autorisé**
-- [ ] Accès complet depuis VLAN 99 (admin) → **autorisé**
-
-### 8.4 Tests workflow GLPI
-
-- [ ] Création ticket par utilisateur (interface self-service)
-- [ ] Notification email reçue (utilisateur + techniciens)
-- [ ] Assignation ticket à un technicien N1/N2/N3
-- [ ] Ajout suivi technique
-- [ ] Résolution ticket
-- [ ] Validation utilisateur
-- [ ] Clôture ticket
-- [ ] Statistiques visibles dans dashboard admin
-
-### 8.5 Tests services secondaires
-
-- [ ] Upload fichier dans Nextcloud → téléchargement OK
-- [ ] Création page wiki dans Outline → édition collaborative
-- [ ] Consultation dashboard Grafana → métriques en temps réel
-- [ ] Alerte Prometheus → notification si service down
-
----
-
-## 9. Conclusion
-
-Cette architecture répond aux exigences de l'appel d'offre RP-03 en plaçant **GLPI (helpdesk)** au centre du dispositif, complété par une suite de services collaboratifs (Nextcloud, Outline, Monitoring).
-
-**Points clés de l'architecture :**
-1. **Infrastructure réseau sécurisée** (RP-01) avec segmentation VLAN
-2. **Authentification centralisée** via OpenLDAP (RP-02)
-3. **Point d'entrée unique** (Traefik) pour tous les services en HTTPS (port 4433)
-4. **Isolation des services** (conteneurs Docker sur VLAN Serveurs)
-5. **Workflow professionnel de ticketing** aligné ITIL (GLPI N1/N2/N3)
-6. **Monitoring complet** (LGP Stack)
-
-**Prochaines étapes :** Documentation détaillée de chaque service (L2 à L8).
 
 ---
 
