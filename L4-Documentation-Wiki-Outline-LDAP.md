@@ -1,5 +1,5 @@
 # L4 — Documentation Wiki Outline + LDAP (Service Secondaire)
-**Projet :** RP-03 — Déploiement d'outils open source pour CFA IRIS Nice  
+**Projet :** RP-03 — Déploiement d'outils open source pour IRIS Mediaschool Nice  
 **Service :** Outline (Wiki interne, base de connaissances)  
 **Statut :** Service secondaire (travail en binôme)  
 **Auteur :** Louka Lavenir  
@@ -118,8 +118,6 @@ networks:
     external: true
 ```
 
-** Important :** Les variables LDAP_* présentes dans les anciennes versions ne sont **pas supportées** par Outline. L'authentification se fait via **OIDC uniquement**.
-
 ### 3.3 Fichier .env (Sécurité)
 
 **Créer le fichier `/opt/iris-services/outline/.env` :**
@@ -160,41 +158,6 @@ docker compose logs -f outline
 
 ---
 
-## 4. Arborescence Documentaire
-
-**Structure initiale créée :**
-
-```
- Infrastructure
-  ├── RP-01 - Architecture réseau
-  ├── Équipements Cisco
-  └── VLANs et segmentation
-
- OpenLDAP
-  ├── RP-02 - Configuration AD
-  ├── Comptes et groupes
-  └── GPO
-
- Services Applicatifs
-  ├── RP-03 - Vue d'ensemble
-  ├── GLPI (Helpdesk)
-  ├── Nextcloud (Cloud)
-  ├── Monitoring (LGP)
-  └── Traefik (Reverse Proxy)
-
- Procédures
-  ├── Création compte utilisateur
-  ├── Intégration nouveau service
-  └── Gestion incidents
-
- Guides Utilisateurs
-  ├── Guide GLPI (étudiants)
-  ├── Guide Nextcloud
-  └── Guide Wiki
-```
-
----
-
 ## 5. Droits d'accès par Groupe AD
 
 **Mapping groupes AD → Rôles Outline :**
@@ -203,22 +166,9 @@ docker compose logs -f outline
 |:---|:---|:---|
 | Admins | Admin | Lecture / Écriture / Suppression / Configuration |
 | Enseignants | Éditeur | Lecture / Écriture |
-| Étudiants | Lecteur | Lecture seule |
-
----
-
-## 6. Tests de Validation
-
-- [ ] Connexion avec compte AD → accès Outline
-- [ ] Création page wiki (profil Éditeur)
-- [ ] Édition collaborative temps réel
-- [ ] Droits lecture seule (profil Lecteur)
-- [ ] Recherche full-text dans la documentation
+| Étudiants | Lecteur | Lecture / Écriture |
 
 ---
 
 **Auteur :** Louka Lavenir  
-**Date :** 20 mars 2026  
-**Version :** 1.0
-
-
+**Date :** 20 mars 2026
