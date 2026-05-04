@@ -354,7 +354,6 @@ groups:
 - **HighCPUUsage** : Se déclenche après 5 minutes de CPU > 90% (évite les faux positifs lors de pics courts)
 - **HighMemoryUsage** : Ajoutée pour superviser la RAM (conteneurs Docker peuvent fuir de la mémoire)
 - **ContainerRestarting** : Détecte les conteneurs instables (plus de 3 redémarrages en 1 heure)
-- **SSLCertExpiring** : Préparée mais commentée — à activer quand HTTP sera déployé
 
 ---
 
@@ -420,54 +419,7 @@ schema_config:
 - **Production recommandée** : 12 mois (8760h) — conformité LCEN (conservation des logs d'accès et d'authentification)
 - **Compaction automatique** : Les logs au-delà de la période de rétention sont supprimés automatiquement toutes les 2 heures
 
-### 5.2 Centralisation des logs Cisco (optionnel)
-
-**Objectif :** Collecter les logs des équipements Cisco (switches, routeur) via syslog et les envoyer vers Loki.
-
-**Option A : Via rsyslog (relai vers Loki)**
-
-1. **Configurer rsyslog sur le serveur Docker** :
-
-```bash
-# /etc/rsyslog.d/50-cisco.conf
-# Recevoir les logs Cisco en UDP 514
-module(load="imudp")
-input(type="imudp" port="514")
-
-# Filtrer et envoyer vers fichier
-if $fromhost-ip startswith '10.10.10.' then {
-    action(type="omfile" file="/var/log/cisco/cisco.log")
-}
-```
-
-2. **Configurer Promtail pour collecter ce fichier** (déjà configuré dans section 3.2)
-
-3. **Configurer les équipements Cisco pour envoyer les logs** :
-
-```cisco
-! Sur Switch Catalyst 2960-S
-enable
-configure terminal
-logging host 10.10.10.X       ! IP du serveur Docker
-logging trap informational    ! Niveau de log
-logging facility local6
-exit
-write memory
-
-! Sur Routeur Cisco 1941
-enable
-configure terminal
-logging host 10.10.10.X
-logging trap informational
-exit
-write memory
-```
-
-**Option B : Via syslog-ng (filtrage avancé)**
-
-Pour un filtrage plus fin (par type d'événement Cisco), utiliser syslog-ng au lieu de rsyslog.
-
-### 5.3 Dashboard Grafana "Logs Applicatifs"
+### 5.2 Dashboard Grafana "Logs Applicatifs"
 
 **Création du dashboard :**
 
@@ -507,7 +459,7 @@ Pour un filtrage plus fin (par type d'événement Cisco), utiliser syslog-ng au 
 
 ## 6. Configuration Grafana
 
-### 5.1 Configuration LDAP (OpenLDAP)
+### 6.1 Configuration LDAP (OpenLDAP)
 
 **Fichier `grafana/ldap.toml` :**
 
@@ -556,19 +508,5 @@ org_role = "Viewer"
 
 ---
 
-## 7. Tests de Validation
-
-- [ ] Accès Grafana avec compte AD → rôle selon groupe
-- [ ] Métriques CPU/RAM/Disque visibles (Node Exporter)
-- [ ] Tests HTTP (Blackbox Exporter) → services up/down
-- [ ] Alertes configurées (CPU > 90%, Service down)
-- [ ] Logs centralisés (Loki + Promtail)
-- [ ] Dashboards exploitables par responsable technique
-
----
-
 **Auteur :** Vincent (repris par Louka Lavenir)  
-**Date :** 20 mars 2026  
-**Version :** 1.0
-
-
+**Date :** 20 mars 2026
