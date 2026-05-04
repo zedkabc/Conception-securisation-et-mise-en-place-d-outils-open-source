@@ -47,80 +47,68 @@ Outline est un wiki moderne et collaboratif, alternative open source à Notion o
 ### 3.2 Fichier docker-compose.yml
 
 ```yaml
-version: '3.8'
-
 services:
-  postgres-outline:
-    container_name: postgres-outline
-    image: postgres:15
-    restart: always
-    environment:
-      POSTGRES_DB: outline_db
-      POSTGRES_USER: outline_user
-      POSTGRES_PASSWORD: ${OUTLINE_DB_PASSWORD}
-    volumes:
-      - ./volumes/postgres-data:/var/lib/postgresql/data
-    networks:
-      - outline-network
-
-  redis-outline:
-    container_name: redis-outline
-    image: redis:7
-    restart: always
-    volumes:
-      - ./volumes/redis-data:/data
-    networks:
-      - outline-network
-
   outline:
-    container_name: outline
-    image: outlinewiki/outline:latest
-    restart: always
-    # PAS de section ports: — Traefik gère l'accès
-    environment:
-      SECRET_KEY: ${OUTLINE_SECRET_KEY}
-      UTILS_SECRET: ${OUTLINE_UTILS_SECRET}
-      DATABASE_URL: postgres://outline_user:${OUTLINE_DB_PASSWORD}@postgres-outline:5432/outline_db
-      REDIS_URL: redis://redis-outline:6379
-      URL: https://wiki.iris.a3n.fr:4433
-      PORT: 3000
-      FORCE_HTTPS: "false"
-      ENABLE_UPDATES: "true"
-      WEB_CONCURRENCY: 1
-      # OIDC Configuration (Authelia bridge vers AD)
-      OIDC_CLIENT_ID: ${OUTLINE_OIDC_CLIENT_ID}
-      OIDC_CLIENT_SECRET: ${OUTLINE_OIDC_CLIENT_SECRET}
-      OIDC_AUTH_URI: https://authelia.iris.a3n.fr:4433/api/oidc/authorization
-      OIDC_TOKEN_URI: https://authelia.iris.a3n.fr:4433/api/oidc/token
-      OIDC_USERINFO_URI: https://authelia.iris.a3n.fr:4433/api/oidc/userinfo
-      OIDC_USERNAME_CLAIM: preferred_username
-      OIDC_DISPLAY_NAME: "Connexion IRIS Nice (AD)"
-      OIDC_SCOPES: "openid profile email"
+    image: docker.getoutline.com/outlinewiki/outline:latest
+    env_file: ./.env
+    expose:
+      - "3000"
     volumes:
-      - ./volumes/outline-data:/var/lib/outline/data
+      - storage-data:/var/lib/outline/data
     depends_on:
-      - postgres-outline
-      - redis-outline
+      - postgres
+      - redis
     networks:
-      - outline-network
-      - traefik-network
+      - admin_proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.outline.rule=Host(`wiki.iris.a3n.fr`)"
-      - "traefik.http.routers.outline.entrypoints=web"
-      - "traefik.http.services.outline.loadbalancer.server.port=3000"
-      - "traefik.docker.network=traefik-network"
+      - "traefik.docker.network=admin_proxy"
+      - "traefik.http.routers.saidmkd.entrypoints=web"
+      - "traefik.http.routers.saidmkd.rule=Host(`wiki.$DOMAIN_NAME`)"
+      - "traefik.http.routers.saidmkd.service=saidmkd"
+      - "traefik.http.services.saidmkd.loadbalancer.server.port=3000"
+
+  redis:
+    image: redis
+    env_file: ./.env
+    expose:
+      - "6379"
+    volumes:
+      - ./redis.conf:/redis.conf
+    command: ["redis-server", "/redis.conf"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 30s
+      retries: 3
+
+  postgres:
+    image: postgres
+    env_file: ./.env
+    expose:
+      - "5432"
+    volumes:
+      - database-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "outline", "-U", "user"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    environment:
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_DB: $POSTGRES_DB
+
+volumes:
+  storage-data:
+  database-data:
 
 networks:
-  outline-network:
-    driver: bridge
-  traefik-network:
+  admin_proxy:
     external: true
 ```
 
 ### 3.3 Fichier .env (Sécurité)
-
-**Créer le fichier `/opt/iris-services/outline/.env` :**
 
 ```env
 # Mots de passe Outline
