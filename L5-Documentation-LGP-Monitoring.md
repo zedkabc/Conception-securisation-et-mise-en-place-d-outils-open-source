@@ -63,147 +63,174 @@ La stack LGP (Loki-Grafana-Prometheus) est une solution open source de monitorin
 ### 3.1 Structure des fichiers
 
 ```
-/opt/iris-services/monitoring/
+/home/iris/sisr/monitoring/
 ├── docker-compose.yml
 ├── prometheus/
 │   ├── prometheus.yml
-│   ├── alerts.yml
-│   └── targets/
 ├── loki/
-│   └── loki-config.yml
+│   └── chunks
 ├── promtail/
-│   └── promtail-config.yml
+│   └── config.yml
 ├── grafana/
-│   └── provisioning/
-│       ├── datasources/
-│       └── dashboards/
-└── volumes/
-    ├── prometheus-data/
-    ├── loki-data/
-    ├── grafana-data/
-    └── alertmanager-data/
+│   └── conf
+│       └── provisioning/
+│           ├── datasources/
+│           └── dashboards/
 ```
 
 ### 3.2 Fichier docker-compose.yml
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
-  prometheus:
-    container_name: prometheus
-    image: prom/prometheus:latest
-    restart: always
-    ports:
-      - "9090:9090"
+
+  cadvisor:
+    hostname: cadvisor
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml
-      - ./volumes/prometheus-data:/prometheus
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.enable-lifecycle'
-    networks:
-      - monitoring-network
-
-  loki:
-    container_name: loki
-    image: grafana/loki:latest
+      - '--docker_only=true'
+      - '--housekeeping_interval=1s'
     restart: always
+    networks:
+      internal:
+        ipv4_address: 10.14.7.10
     ports:
-      - "3100:3100"
-    volumes:
-      - ./loki/loki-config.yml:/etc/loki/local-config.yaml
-      - ./volumes/loki-data:/loki
-    networks:
-      - monitoring-network
+      - "8080:8080"
 
-  promtail:
-    container_name: promtail
-    image: grafana/promtail:latest
-    restart: always
-    volumes:
-      - ./promtail/promtail-config.yml:/etc/promtail/config.yml
-      - /var/log:/var/log
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-    command: -config.file=/etc/promtail/config.yml
-    networks:
-      - monitoring-network
-
-  grafana:
-    container_name: grafana
-    image: grafana/grafana:latest
-    restart: always
-    ports:
-      - "3000:3000"
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin_password_secure
-      GF_SERVER_ROOT_URL: https://grafana.iris.a3n.fr:4433
-      GF_AUTH_LDAP_ENABLED: "true"
-      GF_AUTH_LDAP_CONFIG_FILE: /etc/grafana/ldap.toml
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./volumes/grafana-data:/var/lib/grafana
-    depends_on:
-      - prometheus
-      - loki
-    networks:
-      - monitoring-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.iris.a3n.fr`)"
-      - "traefik.http.routers.grafana.entrypoints=web"
-      - "traefik.http.routers.grafana.tls=true"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-
-  node-exporter:
-    container_name: node-exporter
+  nodeexporter:
+    hostname: nodeexporter
     image: prom/node-exporter:latest
-    restart: always
-    ports:
-      - "9100:9100"
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    container_name: nodeexporter
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: always
     networks:
-      - monitoring-network
+      internal:
+        ipv4_address: 10.14.7.20
+    ports:
+      - "9100:9100"
 
-  blackbox-exporter:
-    container_name: blackbox-exporter
-    image: prom/blackbox-exporter:latest
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    hostname: prometheus
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+    networks:
+      internal:
+        ipv4_address: 10.14.7.30
+    restart: always
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    hostname: grafana
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - grafana-conf:/usr/share/grafana
+    depends_on:
+      - prometheus
+    networks:
+      internal:
+        ipv4_address: 10.14.7.40
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+
+  loki:
+    hostname: loki
+    image: grafana/loki:2.6.1
+    container_name: loki
+    volumes:
+      - ./config/loki.yaml:/etc/config/loki.yaml
+      - ./loki/chunks:/loki/chunks
+      - ./loki/rules:/loki/rules
+      - ./loki/rules-storage:/home/loki/rules-storage
+    entrypoint:
+      - /usr/bin/loki
+      - -config.file=/etc/config/loki.yaml
+    networks:
+      internal:
+        ipv4_address: 10.14.7.50
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+
+  promtail:
+    hostname: promtail
+    image: grafana/promtail:2.6.1
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log
+      - ./promtail/config.yml:/etc/promtail/config.yml
+    command:
+      - -config.file=/etc/promtail/config.yml
+    networks:
+      internal:
+        ipv4_address: 10.14.7.60
+    restart: always
+
+  blackbox:
+    hostname: blackbox
+    image: prom/blackbox-exporter:v0.25.0
+    container_name: blackbox
+    volumes:
+      - ./blackbox/config.yml:/opt/bitnami/blackbox-exporter/blackbox.yml
+    networks:
+      internal:
+        ipv4_address: 10.14.7.70
     restart: always
     ports:
       - "9115:9115"
-    volumes:
-      - ./prometheus/blackbox.yml:/etc/blackbox_exporter/config.yml
-    networks:
-      - monitoring-network
 
   alertmanager:
-    container_name: alertmanager
+    hostname: alertmanager
     image: prom/alertmanager:latest
-    restart: always
+    container_name: alertmanager
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    networks:
+      internal:
+        ipv4_address: 10.14.7.80
+    restart: unless-stopped
     ports:
       - "9093:9093"
-    volumes:
-      - ./prometheus/alertmanager.yml:/etc/alertmanager/config.yml
-      - ./volumes/alertmanager-data:/alertmanager
-    command:
-      - '--config.file=/etc/alertmanager/config.yml'
-      - '--storage.path=/alertmanager'
-    networks:
-      - monitoring-network
+
+volumes:
+  grafana-storage:
+    external: true
+
+  grafana-conf:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/etykx/monitoring/grafana-conf
 
 networks:
-  monitoring-network:
+  internal:
     driver: bridge
+    ipam:
+      config:
+        - subnet: "10.14.7.0/24"
 ```
 
 ---
@@ -213,63 +240,41 @@ networks:
 ### 4.1 Fichier prometheus.yml
 
 ```yaml
-global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
-
 alerting:
   alertmanagers:
     - static_configs:
-        - targets:
-            - alertmanager:9093
-
-rule_files:
-  - '/etc/prometheus/alerts.yml'
+        - targets: ["alerts:9093"]
+      scheme: http
+      timeout: 10s
 
 scrape_configs:
-  # Métriques Prometheus lui-même
-  - job_name: 'prometheus'
+  - job_name: cadvisor
+    scrape_interval: 5s
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ["cadvisor:8080"]
 
-  # Métriques serveur Linux (Node Exporter)
-  - job_name: 'node-exporter'
+  - job_name: node-exporter
+    scrape_interval: 5s
     static_configs:
-      - targets: ['node-exporter:9100']
+      - targets: ["nodeexporter:9100"]
 
-  # Tests HTTP/HTTP (Blackbox Exporter)
-  - job_name: 'blackbox-http'
+  - job_name: blackbox
     metrics_path: /probe
     params:
-      module: [http_2xx]
+      module: [http_2xx]  # Look for a HTTP 200 response.
     static_configs:
-      - targets:
-          - https://glpi.iris.a3n.fr:4433
-          - https://cloud.iris.a3n.fr:4433
-          - https://wiki.iris.a3n.fr:4433
-          - https://grafana.iris.a3n.fr:4433
+      - targets: ["http://example.com"]  # Remplace par ton URL cible
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
       - source_labels: [__param_target]
         target_label: instance
       - target_label: __address__
-        replacement: blackbox-exporter:9115
+        replacement: blackbox:9115  # Adresse du blackbox exporter
 
-  # SNMP pour équipements Cisco (optionnel, nécessite snmp_exporter)
-  # - job_name: 'cisco-switches'
-  #   static_configs:
-  #     - targets:
-  #         - 10.10.10.1  # Switch Catalyst 2960-S
-  #         - 10.10.10.2  # Routeur Cisco 1941
-  #   metrics_path: /snmp
-  #   params:
-  #     module: [if_mib]
-  #   relabel_configs:
-  #     - source_labels: [__address__]
-  #       target_label: __param_target
-  #     - target_label: __address__
-  #       replacement: snmp-exporter:9116
+  - job_name: blackbox_exporter
+    static_configs:
+      - targets: ["blackbox:9115"]
 ```
 
 ### 4.2 Fichier alerts.yml
@@ -359,7 +364,7 @@ groups:
 
 ## 5. Configuration Loki (Centralisation des Logs)
 
-### 5.1 Fichier loki-config.yml
+### 5.1 Fichier loki.yaml
 
 ```yaml
 auth_enabled: false
@@ -369,49 +374,32 @@ server:
   grpc_listen_port: 9096
 
 common:
-  path_prefix: /loki
+  path_prefix: /home/etykx/monitoring/loki
   storage:
     filesystem:
-      chunks_directory: /loki/chunks
-      rules_directory: /loki/rules
+      chunks_directory: /home/etykx/monitoring/loki/chunks
+      rules_directory: /home/etykx/monitoring/loki/rules
   replication_factor: 1
   ring:
     instance_addr: 127.0.0.1
     kvstore:
       store: inmemory
 
-# Rétention des logs
-limits_config:
-  retention_period: 720h    # 30 jours pour la maquette
-  # En production : 8760h (12 mois) pour conformité LCEN (Loi pour la Confiance dans l'Économie Numérique)
-  ingestion_rate_mb: 10
-  ingestion_burst_size_mb: 20
-
-# Stockage et compaction
-storage_config:
-  boltdb_shipper:
-    active_index_directory: /loki/boltdb-shipper-active
-    cache_location: /loki/boltdb-shipper-cache
-    shared_store: filesystem
-  filesystem:
-    directory: /loki/chunks
-
-compactor:
-  working_directory: /loki/boltdb-shipper-compactor
-  shared_store: filesystem
-  retention_enabled: true
-  retention_delete_delay: 2h
-  retention_delete_worker_count: 150
-
 schema_config:
   configs:
-    - from: 2023-01-01
+    - from: 2020-10-24
       store: boltdb-shipper
       object_store: filesystem
       schema: v11
       index:
         prefix: index_
         period: 24h
+
+ruler:
+  alertmanager_url: http://localhost:9093
+
+analytics:
+  reporting_enabled: false
 ```
 
 ** Politique de rétention :**
@@ -461,40 +449,83 @@ schema_config:
 
 ### 6.1 Configuration LDAP (OpenLDAP)
 
-**Fichier `grafana/ldap.toml` :**
+**Fichier `grafana-conf/conf/ldap.toml` :**
 
 ```toml
+# To troubleshoot and get more log info enable ldap debug logging in grafana.ini
+# [log]
+# filters = ldap:debug
+
 [[servers]]
-host = "openldap"
+# Ldap server host (specify multiple hosts space separated)
+host = "127.0.0.1"
+# Default port is 389 or 636 if use_ssl = true
 port = 389
+# Set to true if LDAP server should use an encrypted TLS connection (either with STARTTLS or LDAPS)
 use_ssl = false
+# If set to true, use LDAP with STARTTLS instead of LDAPS
 start_tls = false
+# The value of an accepted TLS cipher. By default, this value is empty. Example value: ["TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"])
+# For a complete list of supported ciphers and TLS versions, refer to: https://go.dev/src/crypto/tls/cipher_suites.go
+# Starting with Grafana v11.0 only ciphers with ECDHE support are accepted for TLS 1.2 connections.
+tls_ciphers = []
+# This is the minimum TLS version allowed. By default, this value is empty. Accepted values are: TLS1.1 (only for Grafana v10.4 or older), TLS1.2, TLS1.3.
+min_tls_version = ""
+# set to true if you want to skip ssl cert validation
 ssl_skip_verify = false
+# set to the path to your root CA certificate or leave unset to use system defaults
+# root_ca_cert = "/path/to/certificate.crt"
+# Authentication against LDAP servers requiring client certificates
+# client_cert = "/path/to/client.crt"
+# client_key = "/path/to/client.key"
 
-bind_dn = "cn=admin,dc=mediaschool,dc=local"
-bind_password = '[mot_de_passe_service_ldap]'
+# Search user bind dn
+bind_dn = "cn=admin,dc=grafana,dc=org"
+# Search user bind password
+# If the password contains # or ; you have to wrap it with triple quotes. Ex """#password;"""
+bind_password = 'grafana'
+# We recommend using variable expansion for the bind_password, for more info https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#variable-expansion
+# bind_password = '$__env{LDAP_BIND_PASSWORD}'
 
-search_filter = "(ui=%s)"
-search_base_dns = ["dc=mediaschool,dc=local"]
+# Timeout in seconds (applies to each host specified in the 'host' entry (space separated))
+timeout = 10
 
+# User search filter, for example "(cn=%s)" or "(sAMAccountName=%s)" or "(uid=%s)"
+search_filter = "(cn=%s)"
+
+# An array of base dns to search through
+search_base_dns = ["dc=grafana,dc=org"]
+
+## For Posix or LDAP setups that does not support member_of attribute you can define the below settings
+## Please check grafana LDAP docs for examples
+# group_search_filter = "(&(objectClass=posixGroup)(memberUid=%s))"
+# group_search_base_dns = ["ou=groups,dc=grafana,dc=org"]
+# group_search_filter_user_attribute = "uid"
+
+# Specify names of the ldap attributes your ldap uses
 [servers.attributes]
 name = "givenName"
 surname = "sn"
-username = "ui"
+username = "cn"
 member_of = "memberOf"
-email = "mail"
+email =  "email"
 
-# Mapping groupes AD → Rôles Grafana
+# Map ldap groups to grafana org roles
 [[servers.group_mappings]]
-group_dn = "CN=Admins,OU=Groups,dc=mediaschool,dc=local"
+group_dn = "cn=admins,ou=groups,dc=grafana,dc=org"
 org_role = "Admin"
+# To make user an instance admin  (Grafana Admin) uncomment line below
+# grafana_admin = true
+# The Grafana organization database id, optional, if left out the default org (id 1) will be used
+# org_id = 1
 
 [[servers.group_mappings]]
-group_dn = "CN=Enseignants,OU=Groups,dc=mediaschool,dc=local"
+group_dn = "cn=editors,ou=groups,dc=grafana,dc=org"
 org_role = "Editor"
 
 [[servers.group_mappings]]
-group_dn = "CN=Etudiants,OU=Groups,dc=mediaschool,dc=local"
+# If you want to match all (or no ldap groups) then you can use wildcard
+group_dn = "*"
 org_role = "Viewer"
 ```
 
