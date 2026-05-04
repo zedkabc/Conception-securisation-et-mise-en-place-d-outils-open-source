@@ -1,5 +1,5 @@
 # L2 — Documentation Installation et Configuration GLPI + LDAP
-**Projet :** RP-03 — Déploiement d'outils open source pour CFA IRIS Nice  
+**Projet :** RP-03 — Déploiement d'outils open source pour IRIS Mediaschool Nice  
 **Service :** GLPI (Helpdesk & Ticketing) — **FOCUS PRINCIPAL**  
 **Auteur :** Louka Lavenir  
 **Date :** 20 mars 2026
