@@ -252,22 +252,40 @@ services:
   glpi:
     # ... (config existante)
     networks:
-      - glpi-network        # Réseau interne pour MariaDB
-      - traefik-network     #  IMPORTANT : Réseau partagé avec Traefik
+      - glpi
+      - admin_proxy
+      - openldap_ldap_net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.glpi.rule=Host(`glpi.iris.a3n.fr`)"
+      - "traefik.docker.network=admin_proxy"
+
+      # Middleware redirect HTTP → HTTPS
+      - "traefik.http.middlewares.glpi-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.glpi-https-redirect.redirectscheme.permanent=true"
+
+      # Router HTTP → redirect HTTPS
+      - "traefik.http.routers.glpi-http.entrypoints=web"
+      - "traefik.http.routers.glpi-http.rule=Host(`glpi.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.glpi-http.middlewares=glpi-https-redirect"
+      - "traefik.http.routers.glpi-http.service=glpi-svc"
+
+      # Router HTTPS avec TLS Let's Encrypt
       - "traefik.http.routers.glpi.entrypoints=websecure"
+      - "traefik.http.routers.glpi.rule=Host(`glpi.${DOMAIN_NAME}`)"
       - "traefik.http.routers.glpi.tls=true"
-      - "traefik.http.services.glpi.loadbalancer.server.port=80"
-      - "traefik.docker.network=traefik-network"  #  IMPORTANT : Force Traefik à utiliser ce réseau
-      - "traefik.http.routers.glpi.middlewares=security-headers@file"
+      - "traefik.http.routers.glpi.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.glpi.service=glpi-svc"
+      - "traefik.http.routers.glpi.middlewares=secureHeaders@file"
+
+      # Service
+      - "traefik.http.services.glpi-svc.loadbalancer.server.port=80"
 
 networks:
-  glpi-network:
-    driver: bridge
-  traefik-network:
-    external: true  #  IMPORTANT : Réseau créé en dehors du docker-compose
+  glpi:
+  admin_proxy:
+    external: true
+  openldap_ldap_net:
+    external: true
 ```
 
 ** Points critiques :**
