@@ -1,4 +1,4 @@
-# L4 — Documentation Wiki Outline + LDAP (Service Secondaire)
+# L4 — Documentation Wiki Outline (Service Secondaire)
 **Projet :** RP-03 — Déploiement d'outils open source pour IRIS Mediaschool Nice  
 **Service :** Outline (Wiki interne, base de connaissances)  
 **Statut :** Service secondaire (travail en binôme)  
