@@ -1,5 +1,5 @@
 # L6 — Documentation Traefik + HTTPS (Reverse Proxy)
-**Projet :** RP-03 — Déploiement d'outils open source pour CFA IRIS Nice  
+**Projet :** RP-03 — Déploiement d'outils open source pour IRIS Mediaschool Nice  
 **Service :** Traefik (Reverse Proxy centralisé)  
 **Auteur :** Louka Lavenir  
 **Date :** 20 mars 2026
@@ -328,19 +328,6 @@ docker compose restart glpi
 
 **Traefik détecte automatiquement le service et le rend accessible via HTTPS.**
 
-### 7.2 Vérification
-
-```bash
-# Tester l'accès HTTPS
-curl -I https://glpi.iris.a3n.fr:4433
-
-# Résultat attendu :
-HTTP/2 200
-strict-transport-security: max-age=31536000; includeSubDomains
-x-content-type-options: nosniff
-x-frame-options: SAMEORIGIN
-```
-
 ---
 
 ## 8. Redirection HTTP → HTTPS
@@ -363,35 +350,5 @@ entryPoints:
 
 ---
 
-## 9. Headers de Sécurité
-
-**Injectés automatiquement via middleware `security-headers` :**
-
-| Header | Valeur | Protection |
-|:---|:---|:---|
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Force HTTPS pendant 1 an |
-| `X-Content-Type-Options` | `nosniff` | Anti MIME sniffing |
-| `X-Frame-Options` | `SAMEORIGIN` | Anti clickjacking |
-| `X-XSS-Protection` | `1; mode=block` | Anti XSS |
-| `Referrer-Policy` | `same-origin` | Limite les fuites d'URL |
-
----
-
-## 10. Tests de Validation
-
-- [ ] Accès https://glpi.iris.a3n.fr:4433 → OK
-- [ ] Accès https://cloud.iris.a3n.fr:4433 → OK
-- [ ] Accès https://wiki.iris.a3n.fr:4433 → OK
-- [ ] Accès https://grafana.iris.a3n.fr:4433 → OK
-- [ ] Redirection HTTP → HTTPS automatique
-- [ ] Certificat SSL accepté par postes clients (GPO)
-- [ ] Headers de sécurité présents (curl -I)
-- [ ] Dashboard Traefik accessible uniquement VLAN 99
-
----
-
 **Auteur :** Louka Lavenir  
-**Date :** 20 mars 2026  
-**Version :** 1.0
-
-
+**Date :** 20 mars 2026
