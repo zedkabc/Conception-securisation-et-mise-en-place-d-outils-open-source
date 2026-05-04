@@ -165,9 +165,6 @@ mkdir -p volumes/{nextcloud-data,nextcloud-apps,nextcloud-config,postgres-data} 
 docker compose up -d
 docker compose logs -f nextcloud
 ```
-
-**Accès initial :** https://10.10.10.X:4433 (puis HTTP via Traefik)
-
 ---
 
 ## 4. Configuration LDAP (OpenLDAP)
@@ -221,19 +218,5 @@ docker compose logs -f nextcloud
 
 ---
 
-## 7. Tests de Validation
-
-- [ ] Connexion avec compte AD → accès Nextcloud
-- [ ] Upload fichier → téléchargement OK
-- [ ] Partage fichier par lien
-- [ ] Édition collaborative document (OnlyOffice)
-- [ ] Synchronisation calendrier
-- [ ] Quotas respectés selon groupe AD
-
----
-
 **Auteur :** Louka Lavenir  
-**Date :** 20 mars 2026  
-**Version :** 1.0
-
-
+**Date :** 20 mars 2026
