@@ -657,7 +657,4 @@ Si un utilisateur répond à un ticket **Résolu**, il repasse automatiquement e
 ---
 
 **Auteur :** Louka Lavenir  
-**Date :** 20 mars 2026  
-**Version :** 1.0
-
-
+**Date :** 20 mars 2026
