@@ -272,19 +272,6 @@ docker compose up -d
 docker compose logs -f traefik
 ```
 
-### 6.3 Accès Dashboard Traefik
-
-**URL :** https://traefik.iris.a3n.fr:4433
-
-** SÉCURITÉ :** Le dashboard doit être accessible **uniquement depuis VLAN 99 (Administration)**.
-
-**Configuration firewall :**
-```bash
-# Autoriser VLAN Admin uniquement
-iptables -A INPUT -p tcp --dport 8080 -s 10.10.99.0/24 -j ACCEPT
-iptables -A INPUT -p tcp --dport 8080 -j DROP
-```
-
 ---
 
 ## 7. Intégration d'un Service dans Traefik
