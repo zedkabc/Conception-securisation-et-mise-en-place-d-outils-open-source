@@ -58,9 +58,6 @@ GLPI (Gestion Libre de Parc Informatique) est un système de helpdesk et de gest
 
 - **VLAN :** Serveur hébergé sur VLAN 10 (10.10.10.0/24)
 - **DNS :** Entrée DNS `glpi.iris.a3n.fr` pointant vers l'IP du serveur
-- **Ports internes :**
-  - GLPI : 8080 (HTTP, via Traefik uniquement)
-  - MariaDB : 3306 (interne au serveur)
 - **Port externe :** 4433 (HTTPS via Traefik)
 
 ---
