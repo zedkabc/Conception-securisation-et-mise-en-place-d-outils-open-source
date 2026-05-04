@@ -197,7 +197,7 @@ docker compose logs -f nextcloud
 | Groupe AD | Quota Nextcloud |
 |:---|:---|
 | Étudiants | 5 Go |
-| Enseignants | 50 Go |
+| Enseignants | 10 Go |
 | Admins | Illimité |
 
 ---
