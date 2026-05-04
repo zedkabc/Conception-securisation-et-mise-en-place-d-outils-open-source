@@ -67,63 +67,102 @@ GLPI (Gestion Libre de Parc Informatique) est un système de helpdesk et de gest
 ### 3.1 Structure des fichiers
 
 ```
-/opt/iris-services/glpi/
+/home/iris/sisr/GLPI
 ├── docker-compose.yml
-├── config/
-│   └── ldap.xml              # Configuration LDAP (optionnel)
-├── volumes/
-│   ├── glpi-data/            # Données GLPI (pièces jointes, plugins)
-│   └── mariadb-data/         # Base de données MariaDB
-└── backup/                   # Sauvegardes
+├── glpi-data/            # Données GLPI (pièces jointes, plugins)
+├── mysql-data/           # Base de données MariaDB
+├── backup.sh             # Sauvegardes
+├── restore.sh                 
 ```
 
 ### 3.2 Fichier docker-compose.yml
 
 ```yaml
-version: '3.8'
+version: '3.9'
 
 services:
-  mariadb-glpi:
-    container_name: mariadb-glpi
-    image: mariadb:10.11
+  db:
+    image: mariadb:10.6
+    container_name: glpi-db
+    hostname: glpi-db
     restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${GLPI_DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: glpi_db
-      MYSQL_USER: glpi_user
-      MYSQL_PASSWORD: ${GLPI_DB_PASSWORD}
-    volumes:
-      - ./volumes/mariadb-data:/var/lib/mysql
     networks:
-      - glpi-network
-    command: --default-authentication-plugin=mysql_native_password
+      - glpi
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
 
   glpi:
-    container_name: glpi
     image: diouxx/glpi:latest
+    container_name: glpi-app
+    hostname: glpi-app
     restart: always
-    # PAS de section ports: — Traefik gère l'accès via réseau Docker interne
-    environment:
-      TIMEZONE: Europe/Paris
-    volumes:
-      - ./volumes/glpi-data:/var/www/html/glpi
-    depends_on:
-      - mariadb-glpi
     networks:
-      - glpi-network      # Réseau interne pour communiquer avec MariaDB
-      - traefik-network   # Réseau partagé avec Traefik
+      - glpi
+      - admin_proxy
+      - openldap_ldap_net
+    depends_on:
+      - db
+    # ports:
+    #   - "80:80"
+    environment:
+      DB_HOST: glpi-db
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+    volumes:
+      - glpi_files:/var/www/html/glpi/files
     labels:
-      # Configuration Traefik (reverse proxy)
       - "traefik.enable=true"
-      - "traefik.http.routers.glpi.rule=Host(`glpi.iris.a3n.fr`)"
-      - "traefik.http.routers.glpi.entrypoints=web"
-      - "traefik.http.services.glpi.loadbalancer.server.port=80"
-      - "traefik.docker.network=traefik-network"  # Force Traefik à utiliser ce réseau
+      - "traefik.docker.network=admin_proxy"
+
+      # Middleware redirect HTTP → HTTPS
+      - "traefik.http.middlewares.glpi-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.glpi-https-redirect.redirectscheme.permanent=true"
+
+      # Router HTTP → redirect HTTPS
+      - "traefik.http.routers.glpi-http.entrypoints=web"
+      - "traefik.http.routers.glpi-http.rule=Host(`glpi.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.glpi-http.middlewares=glpi-https-redirect"
+      - "traefik.http.routers.glpi-http.service=glpi-svc"
+
+      # Router HTTPS avec TLS Let's Encrypt
+      - "traefik.http.routers.glpi.entrypoints=websecure"
+      - "traefik.http.routers.glpi.rule=Host(`glpi.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.glpi.tls=true"
+      - "traefik.http.routers.glpi.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.glpi.service=glpi-svc"
+      - "traefik.http.routers.glpi.middlewares=secureHeaders@file"
+
+      # Service
+      - "traefik.http.services.glpi-svc.loadbalancer.server.port=80"
+
+  # phpmyadmin:
+  #   image: phpmyadmin/phpmyadmin
+  #   container_name: glpi-phpmyadmin
+  #   restart: always
+  #   depends_on:
+  #     - db
+  #   ports:
+  #     - "8081:80"
+  #   environment:
+  #     PMA_HOST: db
+  #     PMA_USER: admin
+  #     PMA_PASSWORD: louka110
+
+volumes:
+  db_data:
+  glpi_files:
 
 networks:
-  glpi-network:
-    driver: bridge
-  traefik-network:
+  glpi:
+  admin_proxy:
+    external: true
+  openldap_ldap_net:
     external: true
 ```
 
@@ -131,16 +170,20 @@ networks:
 - **Pas de section `ports:`** — Traefik route le trafic via le réseau Docker interne. Publier le port 8080 sur l'hôte créerait un conflit avec les autres services.
 - **Deux réseaux :** `glpi-network` (interne, pour communiquer avec MariaDB) et `traefik-network` (externe, partagé avec Traefik).
 - **Label `traefik.docker.network`** — Nécessaire quand un conteneur est sur plusieurs réseaux. Sans ce label, Traefik peut essayer de router via le mauvais réseau → erreur 502 Bad Gateway.
-- **Variables d'environnement** — Les mots de passe sont définis dans un fichier `.env` (voir section 3.4).
+- **Variables d'environnement** — Les mots de passe sont définis dans un fichier `.env` (voir section 3.3).
 
 ### 3.3 Fichier .env (Sécurité)
 
-**Créer le fichier `/opt/iris-services/glpi/.env` :**
+**Créer le fichier `/home/iris/sisr/GLPI/.env` :**
 
 ```env
 # Mots de passe base de données GLPI
-GLPI_DB_ROOT_PASSWORD=mot_de_passe_root_complexe_ici
-GLPI_DB_PASSWORD=mot_de_passe_glpi_complexe_ici
+YSQL_ROOT_PASSWORD=""
+MYSQL_DATABASE=""
+MYSQL_USER=""
+MYSQL_PASSWORD=""
+GLPI_VERSION=10.0.15
+DOMAIN_NAME=iris.a3n.fr
 ```
 
 ** Sécurité :**
@@ -148,17 +191,17 @@ GLPI_DB_PASSWORD=mot_de_passe_glpi_complexe_ici
 - Permissions restrictives : `chmod 600 .env` (lecture/écriture root uniquement)
 - Utiliser des mots de passe forts (minimum 16 caractères, alphanumériques + symboles)
 
-### 3.3 Déploiement
+### 3.4 Déploiement
 
 ```bash
 # Créer le réseau Traefik (si pas déjà fait)
 docker network create traefik-network
 
 # Se placer dans le dossier GLPI
-cd /opt/iris-services/glpi/
+cd /home/iris/sisr/GLPI
 
 # Créer les dossiers de volumes
-mkdir -p volumes/glpi-data volumes/mariadb-data backup
+mkdir -p mysql_data glpi_data
 
 # Créer le fichier .env avec les mots de passe (voir section 3.3)
 nano .env
@@ -167,12 +210,12 @@ nano .env
 docker compose up -d
 
 # Vérifier les logs
-docker compose logs -f glpi
+docker compose logs -f GLPI
 
 # Attendre que GLPI soit prêt (environ 2-3 minutes au premier démarrage)
 ```
 
-### 3.4 Accès initial
+### 3.5 Accès initial
 
 **URL :** https://glpi.iris.a3n.fr:4433 (via Traefik)
 
@@ -183,7 +226,7 @@ docker compose logs -f glpi
 3. **Installer / Mettre à jour :** Installer
 4. **Vérifications système :** Tout doit être vert
 5. **Connexion base de données :**
-   - Serveur SQL : `mariadb-glpi`
+   - Serveur SQL : `glpi-db`
    - Utilisateur SQL : `glpi_user`
    - Mot de passe SQL : `[voir fichier .env sécurisé]`
 6. **Sélection base :** `glpi_db`
