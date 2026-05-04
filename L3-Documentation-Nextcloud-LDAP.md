@@ -1,5 +1,5 @@
 # L3 — Documentation Nextcloud + LDAP (Service Secondaire)
-**Projet :** RP-03 — Déploiement d'outils open source pour CFA IRIS Nice  
+**Projet :** RP-03 — Déploiement d'outils open source pour IRIS Mediaschool Nice  
 **Service :** Nextcloud (Cloud interne, collaboration)  
 **Statut :** Service secondaire (travail en binôme)  
 **Auteur :** Louka Lavenir  
