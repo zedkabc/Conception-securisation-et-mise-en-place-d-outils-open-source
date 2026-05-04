@@ -1,5 +1,5 @@
 # L8 — Procédure d'Intégration d'un Nouveau Service dans Traefik
-**Projet :** RP-03 — Déploiement d'outils open source pour CFA IRIS Nice  
+**Projet :** RP-03 — Déploiement d'outils open source pour IRIS Mediaschool Nice  
 **Public :** Administrateurs système  
 **Auteur :** Louka Lavenir  
 **Date :** 20 mars 2026
