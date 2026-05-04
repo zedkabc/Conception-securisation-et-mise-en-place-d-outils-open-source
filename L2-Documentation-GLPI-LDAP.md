@@ -19,8 +19,7 @@ GLPI (Gestion Libre de Parc Informatique) est un système de helpdesk et de gest
 - Tracer tous les incidents et leur résolution
 - Classifier les tickets par niveau d'intervention (N1/N2/N3)
 - Aligner le cycle de traitement sur les pratiques ITIL (incident, demande, escalade, clôture)
-- Intégrer l'authentification avec l'OpenLDAP existant (RP-02)
-- Exposer le service en HTTPS via Traefik sur le port 4433
+- Intégrer l'authentification avec l'OpenLDAP existant
 
 ### 1.2 Pourquoi GLPI ?
 
