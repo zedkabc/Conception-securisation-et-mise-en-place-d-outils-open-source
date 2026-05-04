@@ -1,5 +1,5 @@
-# Dossier de Réalisation Professionnelle GLPI (Version structurée)
-**Projet :** Déploiement d'outils open source pour CFA IRIS Nice  
+# Dossier de Réalisation Professionnelle GLPI
+**Projet :** Déploiement d'outils open source pour IRIS Nice  
 **Auteur :** Louka Lavenir  
 **Période de réalisation :** 24/11/2025 au 28/11/2025  
 **Lieu :** Mediaschool — IRIS Nice  
