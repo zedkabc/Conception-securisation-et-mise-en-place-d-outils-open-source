@@ -63,7 +63,7 @@ L'architecture applicative repose sur une **approche conteneurisée (Docker)** a
 |:---|:---|:---|:---|
 | **GLPI (Helpdesk)** | https://glpi.iris.a3n.fr:4433 | LDAP | 80 |
 | **Nextcloud (Cloud)** | https://cloud.iris.a3n.fr:4433 | LDAP | 80 |
-| **Outline (Wiki)** | https://wiki.iris.a3n.fr:4433 | keyloak | 3000 |
+| **Outline (Wiki)** | https://wiki.iris.a3n.fr:4433 | Keycloak | 3000 |
 | **Grafana (Monitoring)** | https://grafana.iris.a3n.fr:4433 | LDAP | 3000 |
 
 **Certificat HTTPS :** Auto-signé avec CN=*.iris.a3n.fr, distribué via GPO aux postes clients.
@@ -137,7 +137,7 @@ Tous les services utilisent la même configuration LDAP pour se connecter à l'O
 - Procédures
 - Guides utilisateurs
 
-**Authentification :** keyloak  
+**Authentification :** Keycloak  
 **Droits :**
 - Admin → Lecture/Écriture/Suppression
 - Enseignants → Lecture/Écriture
