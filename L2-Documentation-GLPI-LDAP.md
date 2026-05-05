@@ -151,8 +151,8 @@ services:
   #     - "8081:80"
   #   environment:
   #     PMA_HOST: db
-  #     PMA_USER: admin
-  #     PMA_PASSWORD: louka110
+  #     PMA_USER: ""
+  #     PMA_PASSWORD: ""
 
 volumes:
   db_data:
