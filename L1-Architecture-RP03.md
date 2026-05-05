@@ -117,7 +117,7 @@ Tous les services utilisent la même configuration LDAP pour se connecter à l'O
 - Stockage de fichiers avec quotas par groupe AD
 - Calendrier partagé
 - Contacts
-- Édition collaborative (OnlyOffice ou Collabora)
+- Édition collaborative
 - Partages par groupe AD (ex : espace SISR, espace SLAM)
 
 **Authentification :** LDAP (groupes AD)  
@@ -131,13 +131,13 @@ Tous les services utilisent la même configuration LDAP pour se connecter à l'O
 **Rôle :** Documentation technique centralisée.
 
 **Arborescence initiale :**
-- Infrastructure (RP-01)
+- Infrastructure
 - OpenLDAP (RP-02)
 - Services applicatifs (RP-03)
 - Procédures
 - Guides utilisateurs
 
-**Authentification :** LDAP (groupes AD)  
+**Authentification :** keyloak  
 **Droits :**
 - Admin → Lecture/Écriture/Suppression
 - Enseignants → Lecture/Écriture
@@ -161,8 +161,8 @@ Tous les services utilisent la même configuration LDAP pour se connecter à l'O
 
 **Dashboards Grafana :**
 - Vue d'ensemble infrastructure
-- État des services (GLPI, Nextcloud, Outline)
-- Performances réseau (SNMP Cisco)
+- État des services
+- Performances réseau 
 - Logs applicatifs (Loki)
 
 ### 4.4 Traefik (Reverse Proxy)
