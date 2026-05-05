@@ -141,19 +141,6 @@ services:
       # Service
       - "traefik.http.services.glpi-svc.loadbalancer.server.port=80"
 
-  # phpmyadmin:
-  #   image: phpmyadmin/phpmyadmin
-  #   container_name: glpi-phpmyadmin
-  #   restart: always
-  #   depends_on:
-  #     - db
-  #   ports:
-  #     - "8081:80"
-  #   environment:
-  #     PMA_HOST: db
-  #     PMA_USER: ""
-  #     PMA_PASSWORD: ""
-
 volumes:
   db_data:
   glpi_files:
