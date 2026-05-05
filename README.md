@@ -204,7 +204,6 @@ Stratégie recommandée :
 
 - sauvegardes régulières base + volumes ;
 - tests de restauration ;
-- procédure de reprise documentée.
 
 ---
 
