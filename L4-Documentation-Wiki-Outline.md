@@ -24,7 +24,7 @@ Outline est un wiki moderne et collaboratif, alternative open source à Notion o
 | **Souveraineté données** |  Auto-hébergé |  Cloud |  Cloud |  Auto-hébergé |  Auto-hébergé |  Auto-hébergé |
 | **Interface moderne** |  Oui |  Oui |  Complexe |  Datée |  Simple |  Moderne |
 | **Co-édition temps réel** |  Oui |  Oui |  Oui |  Non |  Non |  Non |
-| **Authentification LDAP** |  Non (OIDC uniquement) |  Non |  Oui |  Oui |  Oui |  Oui |
+| **Authentification LDAP** |  OIDC Natif via Keycloak (SSO) |  Non |  Oui |  Oui |  Oui |  Oui |
 | **Coût à l'échelle** |  Indépendant |  Lié au nombre d'utilisateurs |  Lié au nombre d'utilisateurs |  Indépendant |  Indépendant |  Indépendant |
 
 ---
@@ -147,7 +147,7 @@ networks:
 # ── Base de données ───────────────────────────────────────────────
 POSTGRES_USER=""
 POSTGRES_PASSWORD=""
-POSTGRES_DB="
+POSTGRES_DB=""
 DATABASE_URL=""
 
 # ── Application ───────────────────────────────────────────────────
@@ -197,7 +197,6 @@ ENABLE_UPDATES=false
 
 ```bash
 cd /home/iris/sisr/outline-main/
-mkdir -p volumes/{outline-data,postgres-data,redis-data} backup
 docker compose up -d
 docker compose logs -f outline
 ```
@@ -210,7 +209,7 @@ docker compose logs -f outline
 
 **Mapping groupes AD → Rôles Outline :**
 
-| Groupe AD | Rôle Outline | Droits |
+| Groupe Keycloak | Rôle Outline | Droits |
 |:---|:---|:---|
 | Admins | Admin | Lecture / Écriture / Suppression / Configuration |
 | Enseignants | Éditeur | Lecture / Écriture |
