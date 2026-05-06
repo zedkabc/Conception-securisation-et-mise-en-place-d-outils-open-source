@@ -112,7 +112,7 @@ services:
     env_file:
       - .env
     networks:
-      proxy:
+      admin_proxy:
         ipv4_address: 172.100.10.10
       #- metric
     volumes:
@@ -134,7 +134,7 @@ services:
     container_name: portainer
     hostname: portainer
     networks:
-      proxy:
+      admin_proxy:
           ipv4_address: 172.100.10.20
     restart: always
     volumes:
@@ -151,7 +151,7 @@ services:
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
 
 networks:
-  proxy:
+  admin_proxy:
     ipam:
       driver: default
       config:
