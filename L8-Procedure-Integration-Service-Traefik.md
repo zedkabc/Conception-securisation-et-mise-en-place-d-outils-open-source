@@ -94,44 +94,43 @@ cd /opt/iris-services/mon-app
 
 **Créer le fichier `docker-compose.yml` :**
 ```yaml
-version: '3.8'
-
 services:
   mon-app:
-    container_name: mon-app
-    image: mon-app:latest
-    restart: always
-    ports:
-      - "8080:8080"  # Port interne (optionnel si uniquement via Traefik)
-    environment:
-      # Variables d'environnement du service
-      APP_ENV: production
-      APP_URL: https://mon-app.iris.a3n.fr:4433
-    volumes:
-      - ./volumes/mon-app-data:/data
+    # ... (config existante)
     networks:
-      - traefik-network  #  IMPORTANT : Réseau partagé avec Traefik
+      - mon-app
+      - admin_proxy
+      - openldap_ldap_net
     labels:
-      # ========== CONFIGURATION TRAEFIK ==========
       - "traefik.enable=true"
-      
-      # Règle de routage (nom de domaine)
-      - "traefik.http.routers.mon-app.rule=Host(`mon-app.iris.a3n.fr`)"
-      
-      # Point d'entrée HTTPS
+      - "traefik.docker.network=admin_proxy"
+
+      # Middleware redirect HTTP → HTTPS
+      - "traefik.http.middlewares.mon-app-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.mon-app-https-redirect.redirectscheme.permanent=true"
+
+      # Router HTTP → redirect HTTPS
+      - "traefik.http.routers.mon-app-http.entrypoints=web"
+      - "traefik.http.routers.mon-app-http.rule=Host(`glpi.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.mon-app-http.middlewares=mon-app-https-redirect"
+      - "traefik.http.routers.mon-app-http.service=mon-app-svc"
+
+      # Router HTTPS avec TLS Let's Encrypt
       - "traefik.http.routers.mon-app.entrypoints=websecure"
-      
-      # Activer TLS (HTTPS)
+      - "traefik.http.routers.mon-app.rule=Host(`glpi.${DOMAIN_NAME}`)"
       - "traefik.http.routers.mon-app.tls=true"
-      
-      # Port interne du service
-      - "traefik.http.services.mon-app.loadbalancer.server.port=8080"
-      
-      # Middleware sécurité (headers HTTP)
-      - "traefik.http.routers.mon-app.middlewares=security-headers@file"
+      - "traefik.http.routers.mon-app.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.mon-app.service=mon-app-svc"
+      - "traefik.http.routers.mon-app.middlewares=secureHeaders@file"
+
+      # Service
+      - "traefik.http.services.mon-app-svc.loadbalancer.server.port=80"
 
 networks:
-  traefik-network:
+  glpi:
+  admin_proxy:
+    external: true
+  openldap_ldap_net:
     external: true
 ```
 
@@ -159,7 +158,7 @@ mkdir -p volumes/mon-app-data
 ### 5.2 Démarrer le conteneur
 
 ```bash
-cd /opt/iris-services/mon-app
+cd /home/iris/mon-app
 docker compose up -d
 ```
 
