@@ -91,9 +91,9 @@ Le port 80 peut rester ouvert uniquement pour rediriger automatiquement les clie
 
 /home/iris/admin/
 ├── docker-compose.yml
-├── systeme
-    ├── traefik_data
-        ├── traefik.toml
+└── systeme/
+    └── traefik_data/
+        └── traefik.toml
 
 ### 4.2 Fichier docker-compose.yml
 
@@ -211,7 +211,7 @@ docker network create admin_proxy --subnet=172.100.10.0/24
 ### 5.2 Démarrer Traefik
 
 ```bash
-cd /opt/iris-services/traefik/
+cd /home/iris/admin/
 docker compose up -d
 docker compose logs -f traefik
 ```
