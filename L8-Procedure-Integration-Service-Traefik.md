@@ -30,13 +30,13 @@ Avant de commencer, rassembler les informations suivantes :
 | **Image Docker** | `mon-app:latest` | Nom de l'image + tag |
 | **Port interne** | `8080` | Port d'écoute du service dans le conteneur |
 | **Sous-domaine souhaité** | `mon-app.iris.a3n.fr` | URL d'accès externe |
-| **Réseau Docker** | `traefik-network` | Réseau partagé avec Traefik |
+| **Réseau Docker** | `admin_proxy` | Réseau partagé avec Traefik |
 
 ### 2.2 Vérifications
 
 **Vérifier que Traefik est opérationnel :**
 ```bash
-docker ps | grep traefik
+docker ps | grep admin_proxy
 # Doit afficher le conteneur traefik en état "Up"
 ```
 
@@ -142,8 +142,8 @@ networks:
 | `traefik.http.routers.mon-app.rule` | `Host(\`mon-app.iris.a3n.fr\`)` | Règle de routage (nom de domaine) |
 | `traefik.http.routers.mon-app.entrypoints` | `websecure` | Point d'entrée HTTPS (port 4433) |
 | `traefik.http.routers.mon-app.tls` | `true` | Active TLS/SSL |
-| `traefik.http.services.mon-app.loadbalancer.server.port` | `8080` | Port interne du conteneur |
-| `traefik.http.routers.mon-app.middlewares` | `security-headers@file` | Middleware headers sécurité |
+| `traefik.http.services.mon-app.loadbalancer.server.port` | `80` | Port interne du conteneur |
+| `traefik.http.routers.mon-app.middlewares` | `secureHeaders@file` | Middleware headers sécurité |
 
 ---
 
@@ -171,45 +171,6 @@ docker compose logs -f mon-app
 **Résultat attendu :**
 - Conteneur démarré sans erreur
 - Service accessible sur son port interne
-
----
-
-## 6. Étape 5 — Configuration Firewall (Sécurité)
-
-### 6.1 Bloquer l'accès direct au port interne
-
-**Objectif :** Forcer le passage par Traefik (HTTPS) uniquement.
-
-**Ajouter règle iptables sur le serveur :**
-```bash
-# Autoriser HTTPS depuis utilisateurs (VLAN 20, 30)
-iptables -A INPUT -p tcp --dport 4433 -s 10.10.20.0/24 -j ACCEPT
-iptables -A INPUT -p tcp --dport 4433 -s 10.10.30.0/24 -j ACCEPT
-
-# Bloquer accès direct au port interne (8080) depuis utilisateurs
-iptables -A INPUT -p tcp --dport 8080 -s 10.10.20.0/24 -j DROP
-iptables -A INPUT -p tcp --dport 8080 -s 10.10.30.0/24 -j DROP
-
-# Admin VLAN → accès complet
-iptables -A INPUT -s 10.10.99.0/24 -j ACCEPT
-
-# Sauvegarder les règles
-netfilter-persistent save
-```
-
-### 6.2 Vérifier que l'accès direct est bloqué
-
-**Depuis un poste client (VLAN 20) :**
-```bash
-nc -zv 10.10.10.10 8080
-# Résultat attendu : timeout ou connexion refusée
-```
-
-**Depuis un poste admin (VLAN 99) :**
-```bash
-nc -zv 10.10.10.10 8080
-# Résultat attendu : réponse du service
-```
 
 ---
 
