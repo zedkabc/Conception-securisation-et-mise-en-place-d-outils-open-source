@@ -59,15 +59,14 @@ Le port 80 peut rester ouvert uniquement pour rediriger automatiquement les clie
 
 1. **Ouvrir le port 80 sur le routeur** vers le serveur Traefik (pour validation HTTP-01 challenge)
 2. **Configurer un enregistrement DNS public** : `*.iris.a3n.fr` → IP publique du routeur
-3. **Activer le certificateResolver ACME dans traefik.yml** :
-   ```yaml
-   certificatesResolvers:
-     letsencrypt:
-       acme:
-         email: admin@iris.a3n.fr
-         storage: /acme/acme.json
-         httpChallenge:
-           entryPoint: web
+3. **Activer le certificateResolver ACME dans traefik.toml** :
+   ```toml
+   [certificatesResolvers.letsencrypt.acme]
+  email = "admin@a3n.fr"
+  storage = "/acme.json"
+  [certificatesResolvers.letsencrypt.acme.dnsChallenge]
+    provider = "infomaniak"
+    delayBeforeCheck = 10
    ```
 4. **Modifier les labels des services** : `traefik.http.routers.<service>.tls.certresolver=letsencrypt`
 5. **Redémarrer Traefik** : Let's Encrypt génère automatiquement les certificats
@@ -89,9 +88,11 @@ Le port 80 peut rester ouvert uniquement pour rediriger automatiquement les clie
 ### 4.1 Structure des fichiers
 
 ```
-/home/julien/traefik/
+/home/iris/admin/
 ├── docker-compose.yml
-├── .env
+├── systeme
+    ├── traefik_data
+        ├── traefik.toml
 ```
 
 ### 4.2 Fichier docker-compose.yml
