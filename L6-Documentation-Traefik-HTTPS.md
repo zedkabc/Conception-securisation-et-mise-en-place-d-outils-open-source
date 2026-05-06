@@ -125,7 +125,7 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
       - "traefik.http.routers.traefik-secure.entrypoints=web"
-      - "traefik.http.routers.traefik-secure.rule=Host(`traefik.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.traefik-secure.rule=Host(`traefik.${iris.a3n.fr}`)"
       - "traefik.http.routers.traefik-secure.service=api@internal"
       - "traefik.http.routers.traefik-secure.middlewares=user-auth@file"
 
@@ -144,10 +144,10 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      # Portainer en HTTP sur portainer.iris.a3n.fr:8080
-      - "traefik.http.routers.portainer.entrypoints=web"
-      - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN_NAME}`)"
-      - "traefik.http.routers.portainer.service=portainer"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.${iris.a3n.fr}`)"
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.routers.portainer.tls.certresolver=letsencrypt"
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
 
 networks:
@@ -205,7 +205,7 @@ networks:
 
 ```bash
 # Créer le réseau externe partagé par tous les services
-docker network create proxy --subnet=172.100.10.0/24
+docker network create admin_proxy --subnet=172.100.10.0/24
 ```
 
 ### 5.2 Démarrer Traefik
