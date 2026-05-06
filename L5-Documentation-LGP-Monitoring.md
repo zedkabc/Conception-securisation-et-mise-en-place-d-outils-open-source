@@ -243,7 +243,7 @@ networks:
 alerting:
   alertmanagers:
     - static_configs:
-        - targets: ["alerts:9093"]
+        - targets: ["alertmanager:9093"]
       scheme: http
       timeout: 10s
 
