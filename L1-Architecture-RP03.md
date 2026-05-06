@@ -75,7 +75,7 @@ L'architecture applicative repose sur une **approche conteneurisée (Docker)** a
 
 ### 3.1 Configuration LDAP unifiée
 
-Tous les services utilisent la même configuration LDAP pour se connecter à l'OpenLDAP :
+Tous les services utilisent la même configuration LDAP pour se connecter à l'OpenLDAP (sauf Outline qui fonctionne avec Keycloak) :
 
 **Paramètres LDAP :**
 - **Serveur LDAP :** `ldap://openldap:389`
@@ -99,7 +99,7 @@ Tous les services utilisent la même configuration LDAP pour se connecter à l'O
 | **Nextcloud** | Étudiants | Utilisateur (quota standard) |
 | **Outline** | Admins | Admin |
 | **Outline** | Enseignants | Éditeur |
-| **Outline** | Étudiants | Lecteur |
+| **Outline** | Étudiants | Lecture / Écriture |
 | **Grafana** | Admins | Admin |
 | **Grafana** | Enseignants | Éditeur |
 | **Grafana** | Étudiants | Viewer |
@@ -142,7 +142,7 @@ Tous les services utilisent la même configuration LDAP pour se connecter à l'O
 **Droits :**
 - Admin → Lecture/Écriture/Suppression
 - Enseignants → Lecture/Écriture
-- Étudiants → Lecture seule
+- Étudiants → Lecture/Écriture
 
 ### 4.3 LGP Stack (Monitoring)
 
