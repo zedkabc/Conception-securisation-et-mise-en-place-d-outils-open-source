@@ -133,8 +133,7 @@ Tous les services utilisent la même configuration LDAP pour se connecter à l'O
 
 **Arborescence initiale :**
 - Infrastructure
-- OpenLDAP (RP-02)
-- Services applicatifs (RP-03)
+- Services applicatifs
 - Procédures
 - Guides utilisateurs
 
