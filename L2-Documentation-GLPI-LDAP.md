@@ -51,7 +51,7 @@ GLPI (Gestion Libre de Parc Informatique) est un système de helpdesk et de gest
 
 - **Docker** : version 24.0+
 - **Docker Compose** : version 2.20+
-- **OpenLDAP** : opérationnel (RP-02)
+- **OpenLDAP** : opérationnel
 - **Traefik** : reverse proxy configuré (voir L6)
 
 ### 2.3 Réseau
@@ -165,7 +165,7 @@ networks:
 
 ```env
 # Mots de passe base de données GLPI
-YSQL_ROOT_PASSWORD=""
+MYSQL_ROOT_PASSWORD=""
 MYSQL_DATABASE=""
 MYSQL_USER=""
 MYSQL_PASSWORD=""
@@ -182,7 +182,7 @@ DOMAIN_NAME=iris.a3n.fr
 
 ```bash
 # Créer le réseau Traefik (si pas déjà fait)
-docker network create traefik-network
+docker network create admin_proxy --subnet=172.100.10.0/24
 
 # Se placer dans le dossier GLPI
 cd /home/iris/sisr/GLPI
@@ -299,8 +299,8 @@ exit
 **Utiliser TLS :** Non
 
 **Informations de recherche :**
-- **Attribut de connexion :** `ui`
-- **Champ de l'identifiant :** `ui`
+- **Attribut de connexion :** `uid`
+- **Champ de l'identifiant :** `uid`
 - **Champ du nom :** `sn`
 - **Champ du prénom :** `givenname`
 - **Champ de l'email :** `mail`
@@ -356,7 +356,7 @@ Utilisateur trouvé : Prénom Nom (email@iris.a3n.fr)
 **Planification de synchronisation (via cron) :**
 ```bash
 # Ajouter dans crontab du serveur
-0 2 * * * docker exec glpi php /var/www/html/glpi/front/ldap.php
+0 2 * * * docker exec glpi php /var/www/html/glpi/bin/console ldap:synchronize_users
 ```
 *Synchronise tous les jours à 2h du matin.*
 
