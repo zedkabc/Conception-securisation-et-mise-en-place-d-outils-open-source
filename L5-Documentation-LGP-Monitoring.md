@@ -223,7 +223,7 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /home/etykx/monitoring/grafana-conf
+      device: /home/iris/sisr/monitoring/grafana-conf
 
 networks:
   internal:
@@ -410,11 +410,11 @@ server:
   grpc_listen_port: 9096
 
 common:
-  path_prefix: /home/etykx/monitoring/loki
+  path_prefix: /home/iris/sisr/monitoring/loki
   storage:
     filesystem:
-      chunks_directory: /home/etykx/monitoring/loki/chunks
-      rules_directory: /home/etykx/monitoring/loki/rules
+      chunks_directory: /home/iris/sisr/monitoring/loki/chunks
+      rules_directory: /home/iris/sisr/monitoring/loki/rules
   replication_factor: 1
   ring:
     instance_addr: 127.0.0.1
@@ -516,7 +516,7 @@ ssl_skip_verify = false
 # client_key = "/path/to/client.key"
 
 # Search user bind dn
-bind_dn = "cn=admin,dc=grafana,dc=org"
+bind_dn = "cn=admin,dc=mediaschool,dc=local"
 # Search user bind password
 # If the password contains # or ; you have to wrap it with triple quotes. Ex """#password;"""
 bind_password = 'grafana'
@@ -530,12 +530,12 @@ timeout = 10
 search_filter = "(cn=%s)"
 
 # An array of base dns to search through
-search_base_dns = ["dc=grafana,dc=org"]
+search_base_dns = ["dc=mediaschool,dc=local"]
 
 ## For Posix or LDAP setups that does not support member_of attribute you can define the below settings
 ## Please check grafana LDAP docs for examples
 # group_search_filter = "(&(objectClass=posixGroup)(memberUid=%s))"
-# group_search_base_dns = ["ou=groups,dc=grafana,dc=org"]
+# group_search_base_dns = ["ou=groups,dc=mediaschool,dc=local"]
 # group_search_filter_user_attribute = "uid"
 
 # Specify names of the ldap attributes your ldap uses
@@ -548,7 +548,7 @@ email =  "email"
 
 # Map ldap groups to grafana org roles
 [[servers.group_mappings]]
-group_dn = "cn=admins,ou=groups,dc=grafana,dc=org"
+group_dn = "cn=admins,ou=groups,dc=mediaschool,dc=local"
 org_role = "Admin"
 # To make user an instance admin  (Grafana Admin) uncomment line below
 # grafana_admin = true
@@ -556,7 +556,7 @@ org_role = "Admin"
 # org_id = 1
 
 [[servers.group_mappings]]
-group_dn = "cn=editors,ou=groups,dc=grafana,dc=org"
+group_dn = "cn=admins,ou=groups,dc=mediaschool,dc=local"
 org_role = "Editor"
 
 [[servers.group_mappings]]
