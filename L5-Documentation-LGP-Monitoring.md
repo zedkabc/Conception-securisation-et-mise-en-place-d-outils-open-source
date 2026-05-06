@@ -1,8 +1,8 @@
 # L5 — Documentation Stack LGP (Loki-Grafana-Prometheus) — Service Secondaire
 **Projet :** RP-03 — Déploiement d'outils open source pour IRIS Mediaschool Nice  
 **Service :** LGP Stack (Monitoring infrastructure)  
-**Statut :** Service secondaire (travail de Vincent ANDREO)  
-**Auteur :** Vincent (repris par Louka Lavenir pour documentation)  
+**Statut :** Service secondaire  
+**Auteur :** LAVENIR Louka (en binôme)  
 **Date :** 20 mars 2026
 
 ---
@@ -17,7 +17,7 @@ La stack LGP (Loki-Grafana-Prometheus) est une solution open source de monitorin
 
 ## 2. Pourquoi la Stack LGP ?
 
-**Benchmark complet réalisé par Vincent :**
+**Benchmark complet :**
 
 ### 2.1 Métriques : Collecte et Stockage (TSDB)
 
@@ -575,5 +575,5 @@ org_role = "Viewer"
 
 ---
 
-**Auteur :** Vincent (repris par Louka Lavenir)  
+**Auteur :** LAVENIR Louka (en binôme)  
 **Date :** 20 mars 2026
