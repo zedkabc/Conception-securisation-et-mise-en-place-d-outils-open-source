@@ -205,7 +205,7 @@ networks:
 
 ```bash
 # Créer le réseau externe partagé par tous les services
-docker network create traefik-network
+docker network create proxy --subnet=172.100.10.0/24
 ```
 
 ### 5.2 Démarrer Traefik
