@@ -88,8 +88,8 @@ Address:  10.10.10.10
 
 **Créer le dossier du service :**
 ```bash
-mkdir -p //home/iris/mon-app
-cd //home/iris/mon-app
+mkdir -p /home/iris/mon-app
+cd /home/iris/mon-app
 ```
 
 **Créer le fichier `docker-compose.yml` :**
