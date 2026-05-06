@@ -55,7 +55,8 @@ L'architecture applicative repose sur une **approche conteneurisée (Docker)** a
 **Service Principal :** GLPI (Helpdesk & Ticketing)  
 **Services Secondaires :** Nextcloud, Outline, LGP (Monitoring), Traefik
 
-**Authentification unifiée :** Tous les services s'authentifient via **LDAP** sur l'OpenLDAP existant.
+**Authentification :** GLPI / Nextcloud / Grafana → Connectés directement à OpenLDAP.
+                       Outline → Connecté à Keycloak.
 
 ### 2.2 URLs d'accès (via Traefik)
 
