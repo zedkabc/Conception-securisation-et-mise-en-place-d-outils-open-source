@@ -165,65 +165,13 @@ networks:
 # Mots de passe Nextcloud
 MYSQL_ROOT_PASSWORD=""
 MYSQL_DATABASE=""
-MYSQL_USER="
+MYSQL_USER=""
 MYSQL_PASSWORD=""
 DOMAIN_NAME=iris.a3n.fr
 ```
 
 ** Sécurité :** Ne jamais commiter ce fichier dans Git (ajouter `.env` au `.gitignore`). Permissions : `chmod 600 .env`.
 
-### 3.4 Déploiement
-
-```bash
-# Créer le réseau Traefik (si pas déjà fait)
-docker network create traefik-network
-
-# Créer les dossiers
-cd /home/iris/sisr/nextcloud/
-mkdir -p volumes/nextcloud-data volumes/postgres-data backup
-
-# Créer le fichier .env
-nano .env
-
-# Lancer les conteneurs
-docker compose up -d
-
-# Vérifier
-docker compose logs -f nextcloud
-```
-
-**Accès :** https://cloud.iris.a3n.fr:4433
-      NEXTCLOUD_TRUSTED_DOMAINS: cloud.iris.a3n.fr
-      OVERWRITEPROTOCOL: HTTP
-      OVERWRITECLIURL: https://cloud.iris.a3n.fr:4433
-    volumes:
-      - ./volumes/nextcloud-data:/var/www/html
-      - ./volumes/nextcloud-apps:/var/www/html/custom_apps
-      - ./volumes/nextcloud-config:/var/www/html/config
-    depends_on:
-      - postgres-nextcloud
-    networks:
-      - nextcloud-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.nextcloud.rule=Host(`cloud.iris.a3n.fr`)"
-      - "traefik.http.routers.nextcloud.entrypoints=web"
-      - "traefik.http.routers.nextcloud.tls=true"
-      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
-
-networks:
-  nextcloud-network:
-    driver: bridge
-```
-
-### 3.3 Déploiement
-
-```bash
-cd /opt/iris-services/nextcloud/
-mkdir -p volumes/{nextcloud-data,nextcloud-apps,nextcloud-config,postgres-data} backup
-docker compose up -d
-docker compose logs -f nextcloud
-```
 ---
 
 ## 4. Configuration LDAP (OpenLDAP)
