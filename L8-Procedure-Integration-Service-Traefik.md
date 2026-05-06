@@ -88,8 +88,8 @@ Address:  10.10.10.10
 
 **Créer le dossier du service :**
 ```bash
-mkdir -p /opt/iris-services/mon-app
-cd /opt/iris-services/mon-app
+mkdir -p //home/iris/mon-app
+cd //home/iris/mon-app
 ```
 
 **Créer le fichier `docker-compose.yml` :**
@@ -111,13 +111,13 @@ services:
 
       # Router HTTP → redirect HTTPS
       - "traefik.http.routers.mon-app-http.entrypoints=web"
-      - "traefik.http.routers.mon-app-http.rule=Host(`glpi.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.mon-app-http.rule=Host(`mon-app.${DOMAIN_NAME}`)"
       - "traefik.http.routers.mon-app-http.middlewares=mon-app-https-redirect"
       - "traefik.http.routers.mon-app-http.service=mon-app-svc"
 
       # Router HTTPS avec TLS Let's Encrypt
       - "traefik.http.routers.mon-app.entrypoints=websecure"
-      - "traefik.http.routers.mon-app.rule=Host(`glpi.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.mon-app.rule=Host(`mon-app.${DOMAIN_NAME}`)"
       - "traefik.http.routers.mon-app.tls=true"
       - "traefik.http.routers.mon-app.tls.certresolver=letsencrypt"
       - "traefik.http.routers.mon-app.service=mon-app-svc"
@@ -127,7 +127,7 @@ services:
       - "traefik.http.services.mon-app-svc.loadbalancer.server.port=80"
 
 networks:
-  glpi:
+  mon-app:
   admin_proxy:
     external: true
   openldap_ldap_net:
