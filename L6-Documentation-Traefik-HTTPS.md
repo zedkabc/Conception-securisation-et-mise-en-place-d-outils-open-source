@@ -155,7 +155,7 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: "172.100.10.0/24"% 
+        - subnet: "172.100.10.0/24"
 ```
 
 **Note :** Le service utilisateur est publié en HTTPS via le mapping `4433:443`.
