@@ -159,61 +159,37 @@ networks:
 
 **Note :** Le service utilisateur est publié en HTTPS via le mapping `4433:443`.
 
-### 4.3 Fichier traefik.yml (Configuration Statique)
+### 4.3 Fichier traefik.toml (Configuration Statique)
 
-```yaml
-# Configuration globale
-global:
-  checkNewVersion: true
-  sendAnonymousUsage: false
+```toml
+[log]
+  level = "INFO"
 
-# API et Dashboard
-api:
-  dashboard: true
-  insecure: false  # Dashboard accessible uniquement via Traefik routing
+[api]
+  dashboard = true
+  debug = true
 
-# Points d'entrée (EntryPoints)
-entryPoints:
-  web:
-    address: ":80"
-    http:
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
-          permanent: true
+[entryPoints]
+  [entryPoints.web]
+    address = ":80"
+  [entryPoints.websecure]
+    address = ":443"
 
-  websecure:
-    address: ":443"
-    http:
-      tls: true
+[certificatesResolvers.letsencrypt.acme]
+  email = "admin@a3n.fr"
+  storage = "/acme.json"
+  [certificatesResolvers.letsencrypt.acme.dnsChallenge]
+    provider = "infomaniak"
+    delayBeforeCheck = 10
 
-# Fournisseurs
-providers:
-  docker:
-    endpoint: "unix:///var/run/docker.sock"
-    exposedByDefault: false
-    network: traefik-network  # Force Traefik à utiliser ce réseau
+[providers]
+  [providers.docker]
+    endpoint = "unix:///var/run/docker.sock"
+    exposedByDefault = false
 
-  file:
-    directory: "/etc/traefik/dynamic"
-    watch: true
-
-# Certificats SSL
-# tls:
-#   stores:
-#     default:
-#       defaultCertificate:
-#         certFile: /certs/iris.a3n.fr.crt
-#         keyFile: /certs/iris.a3n.fr.key
-
-# Logs
-log:
-  level: INFO
-
-accessLog:
-  filePath: "/var/log/traefik/access.log"
-  bufferingSize: 100
+  [providers.file]
+    directory = "/configurations"
+    watch = true
 ```
 
 **Points importants :**
@@ -299,26 +275,6 @@ docker compose restart glpi
 ```
 
 **Traefik détecte automatiquement le service et le rend accessible via HTTPS.**
-
----
-
-## 7. Redirection HTTP → HTTPS
-
-**Configuré automatiquement dans `traefik.yml` :**
-
-```yaml
-entryPoints:
-  web:
-    address: ":80"
-    http:
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
-          permanent: true
-```
-
-**Effet :** Toute requête HTTP est redirigée automatiquement vers HTTPS (code 301).
 
 ---
 
